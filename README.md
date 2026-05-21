@@ -43,6 +43,22 @@ Backend URLs:
 - `http://127.0.0.1:8000/`
 - `http://127.0.0.1:8000/health`
 
+Semantic Scholar search API:
+
+```bash
+curl "http://127.0.0.1:8000/search/semantic-scholar?query=machine%20learning&limit=10"
+```
+
+OpenAlex search API:
+
+```bash
+curl "http://127.0.0.1:8000/search/openalex?query=flashattention&limit=5"
+```
+
+Open API docs:
+
+- `http://127.0.0.1:8000/docs`
+
 ## Start Frontend
 
 ```bash
