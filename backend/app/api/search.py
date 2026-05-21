@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas.search import PaperSearchResult
+from app.services.search.aggregator import search_all_sources
 from app.services.search.arxiv import (
     ArxivParseError,
     ArxivSearchError,
@@ -67,3 +68,11 @@ async def search_arxiv_api(
         raise HTTPException(status_code=502, detail=str(exc)) from exc
     except ArxivSearchError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/all", response_model=list[PaperSearchResult])
+async def search_all_api(
+    query: str = Query(..., min_length=1),
+    limit: int = 10,
+) -> list[PaperSearchResult]:
+    return await search_all_sources(query=query, limit=limit)

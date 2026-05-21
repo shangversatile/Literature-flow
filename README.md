@@ -71,6 +71,12 @@ arXiv search API:
 curl "http://127.0.0.1:8000/search/arxiv?query=flashattention&limit=5"
 ```
 
+All sources search API:
+
+```bash
+curl "http://127.0.0.1:8000/search/all?query=flashattention&limit=10"
+```
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`
