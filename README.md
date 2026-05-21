@@ -43,10 +43,20 @@ Backend URLs:
 - `http://127.0.0.1:8000/`
 - `http://127.0.0.1:8000/health`
 
+Semantic Scholar API key:
+
+Create a `.env` file in the project root and add:
+
+```bash
+S2_API_KEY=your_semantic_scholar_api_key
+```
+
+Do not commit `.env`. It is already listed in `.gitignore`.
+
 Semantic Scholar search API:
 
 ```bash
-curl "http://127.0.0.1:8000/search/semantic-scholar?query=machine%20learning&limit=10"
+curl "http://127.0.0.1:8000/search/semantic-scholar?query=flashattention&limit=5"
 ```
 
 OpenAlex search API:
