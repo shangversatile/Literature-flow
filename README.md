@@ -77,6 +77,14 @@ All sources search API:
 curl "http://127.0.0.1:8000/search/all?query=flashattention&limit=10"
 ```
 
+Search all sources and save results:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/search/all/save" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"query\":\"flashattention\",\"limit\":10}"
+```
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`

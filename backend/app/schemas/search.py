@@ -1,5 +1,7 @@
 from sqlmodel import Field, SQLModel
 
+from app.schemas.paper import PaperRead
+
 
 class PaperSearchResult(SQLModel):
     title: str
@@ -16,3 +18,15 @@ class PaperSearchResult(SQLModel):
     relevance_score: float | None = None
     quality_score: float | None = None
     sources: list[str] = Field(default_factory=list)
+
+
+class SearchSaveRequest(SQLModel):
+    query: str
+    limit: int = 10
+
+
+class SearchSaveResponse(SQLModel):
+    query: str
+    inserted_count: int
+    skipped_count: int
+    papers: list[PaperRead]
