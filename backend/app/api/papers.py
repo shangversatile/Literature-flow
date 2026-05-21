@@ -9,6 +9,12 @@ from sqlmodel import Session, select
 from app.db.session import get_session
 from app.models.paper import Paper
 from app.schemas.paper import PaperCreate, PaperRead, PaperUpdate
+from app.services.download.downloader import PdfDownloadError, download_pdf
+from app.services.download.resolver import resolve_pdf_url
+from app.services.download.unpaywall import (
+    UnpaywallEmailMissingError,
+    UnpaywallLookupError,
+)
 
 
 router = APIRouter(prefix="/papers", tags=["papers"])
@@ -54,6 +60,71 @@ def read_paper(
     paper = session.get(Paper, paper_id)
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
+    return paper
+
+
+@router.post("/{paper_id}/resolve-pdf", response_model=PaperRead)
+async def resolve_paper_pdf(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> Paper:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    try:
+        pdf_url = await resolve_pdf_url(paper)
+    except UnpaywallEmailMissingError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except UnpaywallLookupError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    if not pdf_url:
+        raise HTTPException(status_code=404, detail="No legal open-access PDF found")
+
+    paper.pdf_url = pdf_url
+    if paper.status == "DISCOVERED":
+        paper.status = "PDF_RESOLVED"
+    paper.updated_at = datetime.utcnow()
+
+    session.add(paper)
+    session.commit()
+    session.refresh(paper)
+    return paper
+
+
+@router.post("/{paper_id}/download-pdf", response_model=PaperRead)
+async def download_paper_pdf(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> Paper:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    try:
+        pdf_url = await resolve_pdf_url(paper)
+    except UnpaywallEmailMissingError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    except UnpaywallLookupError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    if not pdf_url:
+        raise HTTPException(status_code=404, detail="No legal open-access PDF found")
+
+    try:
+        local_pdf_path = await download_pdf(pdf_url, paper_id)
+    except PdfDownloadError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    paper.pdf_url = pdf_url
+    paper.local_pdf_path = local_pdf_path
+    paper.status = "PDF_DOWNLOADED"
+    paper.updated_at = datetime.utcnow()
+
+    session.add(paper)
+    session.commit()
+    session.refresh(paper)
     return paper
 
 

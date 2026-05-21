@@ -49,6 +49,7 @@ Create a `.env` file in the project root and add:
 
 ```bash
 S2_API_KEY=your_semantic_scholar_api_key
+UNPAYWALL_EMAIL=your_email@example.com
 ```
 
 Do not commit `.env`. It is already listed in `.gitignore`.
@@ -83,6 +84,17 @@ Search all sources and save results:
 curl -X POST "http://127.0.0.1:8000/search/all/save" ^
   -H "Content-Type: application/json" ^
   -d "{\"query\":\"flashattention\",\"limit\":10}"
+```
+
+Legal open-access PDF resolver and downloader:
+
+The system only resolves and downloads legal open-access PDF URLs from existing
+paper PDF URLs, arXiv PDF links, or Unpaywall. It does not bypass paywalls,
+logins, or CAPTCHA.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/resolve-pdf"
+curl -X POST "http://127.0.0.1:8000/papers/1/download-pdf"
 ```
 
 Open API docs:
