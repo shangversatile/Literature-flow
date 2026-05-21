@@ -65,6 +65,12 @@ OpenAlex search API:
 curl "http://127.0.0.1:8000/search/openalex?query=flashattention&limit=5"
 ```
 
+arXiv search API:
+
+```bash
+curl "http://127.0.0.1:8000/search/arxiv?query=flashattention&limit=5"
+```
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`

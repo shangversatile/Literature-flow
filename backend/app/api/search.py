@@ -1,6 +1,12 @@
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas.search import PaperSearchResult
+from app.services.search.arxiv import (
+    ArxivParseError,
+    ArxivSearchError,
+    ArxivTimeoutError,
+    search_arxiv,
+)
 from app.services.search.openalex import (
     OpenAlexRateLimitError,
     OpenAlexSearchError,
@@ -45,4 +51,19 @@ async def search_openalex_api(
     except OpenAlexRateLimitError as exc:
         raise HTTPException(status_code=429, detail=str(exc)) from exc
     except OpenAlexSearchError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+
+@router.get("/arxiv", response_model=list[PaperSearchResult])
+async def search_arxiv_api(
+    query: str = Query(..., min_length=1),
+    limit: int = 10,
+) -> list[PaperSearchResult]:
+    try:
+        return await search_arxiv(query=query, limit=limit)
+    except ArxivTimeoutError as exc:
+        raise HTTPException(status_code=504, detail=str(exc)) from exc
+    except ArxivParseError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+    except ArxivSearchError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
