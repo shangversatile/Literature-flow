@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 
 from app.api.papers import router as papers_router
+from app.api.search import router as search_router
 from app.db.session import init_db
 
 app = FastAPI(title="LitFlow Backend")
@@ -12,6 +13,7 @@ def on_startup() -> None:
 
 
 app.include_router(papers_router)
+app.include_router(search_router)
 
 
 @app.get("/")
