@@ -4,6 +4,8 @@ from pathlib import Path
 from sqlmodel import Session, SQLModel, create_engine
 
 from app.models.paper import Paper
+from app.models.paper_chunk import PaperChunk
+from app.models.paper_text import PaperText
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
