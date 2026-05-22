@@ -258,7 +258,19 @@ Open:
 
 - `http://localhost:5173`
 
-Before using the dashboard, save papers through the backend search endpoint:
+You can search papers directly from the Dashboard with the top Search panel.
+For example:
+
+- query: `flashattention`
+- limit: `10`
+
+The frontend first calls `/search/all` and shows results without saving them.
+Select the papers you want, then click `Save Selected` to call
+`/search/save-selected`. `Save All Results` is still available as a secondary
+action and calls `/search/all/save`. Successful saves refresh the Dashboard
+automatically.
+
+You can also call the backend endpoint manually:
 
 ```bash
 curl -X POST "http://127.0.0.1:8000/search/all/save" ^
@@ -266,6 +278,6 @@ curl -X POST "http://127.0.0.1:8000/search/all/save" ^
   -d "{\"query\":\"flashattention\",\"limit\":10}"
 ```
 
-The dashboard supports paper filtering, PDF resolve/download/parse, mock
-extraction, one-click Process Paper, loading the latest extraction, and mock RAG
-ask.
+The dashboard supports Search Only, Select Results, Save Selected, Save All
+Results, paper filtering, PDF resolve/download/parse, mock extraction, one-click
+Process Paper, loading the latest extraction, and mock RAG ask.
