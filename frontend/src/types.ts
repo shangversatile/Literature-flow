@@ -32,6 +32,12 @@ export interface Paper {
   venue_rank_note?: string | null
 }
 
+export interface ReadingPriority {
+  label: string
+  level: string
+  reason: string
+}
+
 export interface Extraction {
   id: number
   paper_id: number

@@ -22,6 +22,7 @@ import type {
   ProcessPaperResponse,
   WorkspaceResponse,
 } from '../types'
+import { computeReadingPriority, getPriorityMeaning, priorityBadgeClass } from '../utils/paperQuality'
 
 const API_BASE = 'http://127.0.0.1:8000'
 
@@ -80,6 +81,12 @@ const summaryItems = computed(() => [
   { title: 'Limitations', key: 'limitations' },
   { title: 'Relevance', key: 'relevance_to_user_topic' },
 ])
+const readingPriority = computed(() => {
+  return props.paper ? computeReadingPriority(props.paper) : null
+})
+const readingPriorityMeaning = computed(() => {
+  return readingPriority.value ? getPriorityMeaning(readingPriority.value.label) : ''
+})
 
 watch(
   () => props.paper?.id,
@@ -353,6 +360,19 @@ function formatSummaryValue(value: unknown) {
           <div class="metric-tile">
             <span>Final Score</span>
             <strong>{{ displayValue(paper.final_score) }}</strong>
+          </div>
+        </div>
+        <div v-if="readingPriority" class="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+          <div class="mb-1 text-xs font-semibold uppercase tracking-normal text-gray-500">Reading Priority</div>
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="badge badge-priority" :class="priorityBadgeClass(readingPriority)">
+              {{ readingPriority.label }}
+            </span>
+            <span class="text-xs leading-5 text-gray-600">{{ readingPriorityMeaning }}</span>
+          </div>
+          <div class="mt-2 rounded-md border border-gray-200 bg-white px-2.5 py-2 text-xs leading-5 text-gray-600">
+            <span class="font-semibold text-gray-700">Reason:</span>
+            {{ readingPriority.reason }}
           </div>
         </div>
         <dl class="detail-grid mt-3">

@@ -7,11 +7,13 @@ import PaperTable from './components/PaperTable.vue'
 import RagAskBox from './components/RagAskBox.vue'
 import SearchPanel from './components/SearchPanel.vue'
 import type { Paper } from './types'
+import { computeReadingPriority } from './utils/paperQuality'
 
 const papers = ref<Paper[]>([])
 const selectedPaperId = ref<number | null>(null)
 const stageFilter = ref('ALL')
 const capabilityFilter = ref('ALL')
+const priorityFilter = ref('ALL')
 const yearFilter = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
@@ -26,8 +28,10 @@ const filteredPapers = computed(() => {
   return papers.value.filter((paper) => {
     const stageMatches = stageFilter.value === 'ALL' || paper.status === stageFilter.value
     const capabilityMatches = capabilityFilter.value === 'ALL' || paperMatchesCapability(paper, capabilityFilter.value)
+    const priorityMatches =
+      priorityFilter.value === 'ALL' || computeReadingPriority(paper).label === priorityFilter.value
     const yearMatches = !year || String(paper.year ?? '').includes(year)
-    return stageMatches && capabilityMatches && yearMatches
+    return stageMatches && capabilityMatches && priorityMatches && yearMatches
   })
 })
 
@@ -37,6 +41,18 @@ const llmExtractedCount = computed(() => {
 
 const pdfDownloadedCount = computed(() => {
   return papers.value.filter((paper) => paper.status === 'PDF_DOWNLOADED' || paper.local_pdf_path).length
+})
+
+const mustReadCount = computed(() => {
+  return papers.value.filter((paper) => computeReadingPriority(paper).label === 'Must Read').length
+})
+
+const highPriorityCount = computed(() => {
+  return papers.value.filter((paper) => computeReadingPriority(paper).label === 'High Priority').length
+})
+
+const frontierWatchCount = computed(() => {
+  return papers.value.filter((paper) => computeReadingPriority(paper).label === 'Frontier Watch').length
 })
 
 async function loadPapers() {
@@ -73,9 +89,10 @@ function paperMatchesCapability(paper: Paper, capability: string) {
   return true
 }
 
-function handleFilterChange(filters: { stage: string; capability: string; year: string }) {
+function handleFilterChange(filters: { stage: string; capability: string; priority: string; year: string }) {
   stageFilter.value = filters.stage
   capabilityFilter.value = filters.capability
+  priorityFilter.value = filters.priority
   yearFilter.value = filters.year
 }
 
@@ -110,11 +127,14 @@ onMounted(loadPapers)
       <SearchPanel @refresh="loadPapers" />
     </div>
 
-    <div class="grid min-h-0 flex-1 grid-cols-[230px_minmax(560px,1fr)_470px] gap-4 overflow-hidden p-4">
+    <div class="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_480px] gap-4 overflow-hidden p-4">
       <FilterSidebar
         :total-papers="papers.length"
         :llm-extracted-count="llmExtractedCount"
         :pdf-downloaded-count="pdfDownloadedCount"
+        :must-read-count="mustReadCount"
+        :high-priority-count="highPriorityCount"
+        :frontier-watch-count="frontierWatchCount"
         @filter-change="handleFilterChange"
         @refresh="loadPapers"
       />

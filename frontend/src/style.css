@@ -223,6 +223,9 @@ button:disabled {
   justify-content: center;
   max-width: 100%;
   min-width: max-content;
+  flex: 0 0 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
   border-radius: 999px;
   border: 1px solid #e5e7eb;
   background: #f9fafb;
@@ -257,6 +260,36 @@ button:disabled {
   min-width: 108px;
 }
 
+.badge-priority-must-read {
+  border-color: #86efac;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.badge-priority-high {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.badge-priority-frontier {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #c2410c;
+}
+
+.badge-priority-skim {
+  border-color: #d1d5db;
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.badge-priority-archive {
+  border-color: #e5e7eb;
+  background: #fafafa;
+  color: #6b7280;
+}
+
 .badge-score {
   border-color: #bbf7d0;
   background: #f0fdf4;
@@ -286,8 +319,7 @@ button:disabled {
   width: 100%;
   min-width: 1100px;
   table-layout: fixed;
-  border-collapse: separate;
-  border-spacing: 0;
+  border-collapse: collapse;
   text-align: left;
   font-size: 0.8125rem;
 }
@@ -316,6 +348,22 @@ button:disabled {
 .paper-table-wrapper {
   overflow-x: auto;
   overflow-y: auto;
+  max-width: 100%;
+  min-height: 0;
+  width: 100%;
+}
+
+.paper-table-wrapper::-webkit-scrollbar {
+  height: 12px;
+}
+
+.paper-table-wrapper::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.priority-guide {
+  scroll-margin-top: 0.5rem;
 }
 
 .rank-cell {
@@ -336,6 +384,15 @@ button:disabled {
 .status-cell {
   min-width: 130px;
   white-space: nowrap;
+}
+
+.title-cell {
+  min-width: 300px;
+  max-width: 420px;
+}
+
+.authors-cell {
+  min-width: 180px;
 }
 
 .text-link {
