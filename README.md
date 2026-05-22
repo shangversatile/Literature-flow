@@ -174,3 +174,36 @@ npm run dev
 Frontend URL:
 
 - `http://127.0.0.1:5173/`
+
+## Paper Dashboard
+
+Start the backend first:
+
+```bash
+cd backend
+.venv\Scripts\activate
+uvicorn app.main:app --reload
+```
+
+Then start the frontend:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open:
+
+- `http://localhost:5173`
+
+Before using the dashboard, save papers through the backend search endpoint:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/search/all/save" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"query\":\"flashattention\",\"limit\":10}"
+```
+
+The dashboard supports paper filtering, PDF resolve/download/parse, mock
+extraction, loading the latest extraction, and mock RAG ask.

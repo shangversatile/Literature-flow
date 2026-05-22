@@ -1,0 +1,71 @@
+export interface Paper {
+  id: number
+  title: string
+  normalized_title: string | null
+  doi: string | null
+  year: number | null
+  venue: string | null
+  abstract: string | null
+  citation_count: number
+  pdf_url: string | null
+  local_pdf_path: string | null
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+export interface Extraction {
+  id: number
+  paper_id: number
+  model_name: string
+  prompt_version: string
+  extracted_json: string
+  raw_llm_output: string | null
+  human_edited: boolean
+  created_at: string
+}
+
+export interface EvidenceChunk {
+  chunk_index: number
+  text: string
+  score: number
+  page_start: number | null
+  page_end: number | null
+  section_title?: string | null
+}
+
+export interface AskResponse {
+  paper_id: number
+  question: string
+  mode: string
+  answer: string
+  evidence_chunks: EvidenceChunk[]
+  evidence_chunk_indices: number[]
+}
+
+export type PaperUpdatePayload = Partial<
+  Pick<
+    Paper,
+    | 'title'
+    | 'doi'
+    | 'year'
+    | 'venue'
+    | 'abstract'
+    | 'citation_count'
+    | 'pdf_url'
+    | 'local_pdf_path'
+    | 'status'
+  >
+>
+
+export interface ExtractPayload {
+  mode: 'mock' | 'openai'
+  user_topic?: string | null
+  max_chunks: number
+}
+
+export interface AskPayload {
+  question: string
+  mode: 'mock' | 'openai'
+  top_k: number
+}
