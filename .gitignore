@@ -9,3 +9,5 @@ storage/assets/*
 !storage/assets/.gitkeep
 storage/library/*
 !storage/library/.gitkeep
+
+storage/library/
