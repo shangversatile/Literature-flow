@@ -5,6 +5,7 @@ import FilterSidebar from './components/FilterSidebar.vue'
 import PaperDetailPanel from './components/PaperDetailPanel.vue'
 import PaperTable from './components/PaperTable.vue'
 import RagAskBox from './components/RagAskBox.vue'
+import SearchPanel from './components/SearchPanel.vue'
 import type { Paper } from './types'
 
 const papers = ref<Paper[]>([])
@@ -73,6 +74,8 @@ onMounted(loadPapers)
           <span v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</span>
         </div>
       </header>
+
+      <SearchPanel @refresh="loadPapers" />
 
       <div v-if="!loading && papers.length === 0" class="flex flex-1 items-center justify-center p-6 text-sm text-slate-500">
         No papers yet. Use backend /search/all/save first.

@@ -104,3 +104,37 @@ export interface ProcessPaperResponse {
   steps: ProcessStepResult[]
   final_status: string
 }
+
+export interface SearchSaveResponse {
+  query: string
+  inserted_count: number
+  skipped_count: number
+  papers: Paper[]
+}
+
+export interface PaperSearchResult {
+  title: string
+  abstract: string | null
+  year: number | null
+  venue: string | null
+  doi: string | null
+  citation_count: number
+  authors: string[]
+  url: string | null
+  external_ids: Record<string, unknown>
+  open_access_pdf_url: string | null
+  source: string
+  sources: string[]
+  relevance_score: number | null
+  authority_score: number | null
+  frontier_score: number | null
+  accessibility_score: number | null
+  final_score: number | null
+  quality_score: number | null
+  venue_normalized: string | null
+  publication_type: string | null
+  publication_status: string | null
+  venue_rank: string | null
+  venue_rank_source: string | null
+  venue_rank_note: string | null
+}
