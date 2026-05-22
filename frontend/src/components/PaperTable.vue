@@ -47,56 +47,97 @@ function displayRank(paper: Paper) {
   return paper.rank_value || paper.venue_rank || '-'
 }
 
+function compactRank(paper: Paper) {
+  const rank = displayRank(paper)
+  return rank.length > 12 ? `${rank.slice(0, 12)}...` : rank
+}
+
+function displayStatus(status: string) {
+  const labels: Record<string, string> = {
+    DISCOVERED: 'Discovered',
+    PDF_RESOLVED: 'PDF Resolved',
+    PDF_DOWNLOADED: 'PDF Downloaded',
+    TEXT_EXTRACTED: 'Text Extracted',
+    LLM_EXTRACTED: 'LLM Extracted',
+  }
+  return labels[status] || status.replace(/_/g, ' ')
+}
+
 function displayAuthors(paper: Paper) {
   const authors = paper.authors || []
   if (!authors.length) return '-'
   if (authors.length <= 2) return authors.join(', ')
   return `${authors.slice(0, 2).join(', ')} et al.`
 }
+
+function priorityLabel(paper: Paper) {
+  if ((paper.final_score ?? 0) >= 0.8) return 'Must Read'
+  if ((paper.final_score ?? 0) >= 0.65) return 'High Priority'
+  if ((paper.frontier_score ?? 0) >= 0.5 && paper.publication_status?.toLowerCase() === 'unpublished') {
+    return 'Frontier Watch'
+  }
+  return 'Skim'
+}
+
+function priorityClass(paper: Paper) {
+  const label = priorityLabel(paper)
+  if (label === 'Must Read') return 'badge-score'
+  if (label === 'High Priority') return 'badge-rank'
+  if (label === 'Frontier Watch') return 'badge-warning'
+  return 'badge-muted'
+}
 </script>
 
 <template>
-  <div class="h-full overflow-auto border-x border-slate-200 bg-white">
-    <table class="w-full table-fixed border-collapse text-left text-sm">
-      <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-normal text-slate-500">
+  <div class="paper-table-wrapper h-full bg-white">
+    <table class="compact-table">
+      <thead>
         <tr>
-          <th class="w-[34%] px-3 py-2 font-medium">Title</th>
-          <th class="w-[17%] px-3 py-2 font-medium">Authors</th>
+          <th class="w-[28%] px-3 py-2 font-medium">Title</th>
+          <th class="w-[14%] px-3 py-2 font-medium">Authors</th>
           <th class="w-[8%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('year')">
               Year {{ sortMark('year') }}
             </button>
           </th>
-          <th class="w-[15%] px-3 py-2 font-medium">Venue</th>
-          <th class="w-[8%] px-3 py-2 font-medium">Rank</th>
-          <th class="w-[9%] px-3 py-2 font-medium">
+          <th class="w-[14%] px-3 py-2 font-medium">Venue</th>
+          <th class="rank-cell w-[10%] px-3 py-2 font-medium">Rank</th>
+          <th class="score-cell w-[9%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('final_score')">
               Final {{ sortMark('final_score') }}
             </button>
           </th>
-          <th class="w-[9%] px-3 py-2 font-medium">Status</th>
+          <th class="priority-cell w-[12%] px-3 py-2 font-medium">Priority</th>
+          <th class="status-cell w-[13%] px-3 py-2 font-medium">Status</th>
         </tr>
       </thead>
       <tbody>
         <tr
           v-for="paper in sortedPapers"
           :key="paper.id"
-          class="cursor-pointer border-b border-slate-100 hover:bg-slate-50"
+          class="cursor-pointer"
           :class="{ 'bg-blue-50 hover:bg-blue-50': paper.id === selectedPaperId }"
           @click="emit('select', paper)"
         >
           <td class="px-3 py-2 align-top">
-            <div class="line-clamp-2 font-medium leading-5 text-slate-900">{{ paper.title }}</div>
-            <div v-if="paper.doi" class="truncate text-xs text-slate-400">{{ paper.doi }}</div>
+            <div class="line-clamp-2 font-semibold leading-5 text-gray-950" :title="paper.title">{{ paper.title }}</div>
+            <div v-if="paper.doi" class="truncate text-xs text-gray-400">{{ paper.doi }}</div>
           </td>
-          <td class="truncate px-3 py-2 align-top text-slate-600">{{ displayAuthors(paper) }}</td>
-          <td class="px-3 py-2 align-top text-slate-600">{{ paper.year || '-' }}</td>
-          <td class="truncate px-3 py-2 align-top text-slate-600">{{ paper.venue || '-' }}</td>
-          <td class="px-3 py-2 align-top text-slate-600">{{ displayRank(paper) }}</td>
-          <td class="px-3 py-2 align-top text-slate-600">{{ displayScore(paper.final_score) }}</td>
-          <td class="px-3 py-2 align-top">
-            <span class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
-              {{ paper.status }}
+          <td class="truncate px-3 py-2 align-top text-xs text-gray-500">{{ displayAuthors(paper) }}</td>
+          <td class="px-3 py-2 align-top text-gray-600">{{ paper.year || '-' }}</td>
+          <td class="truncate px-3 py-2 align-top text-gray-600">{{ paper.venue || '-' }}</td>
+          <td class="rank-cell px-3 py-2 align-top">
+            <span class="badge badge-rank" :title="displayRank(paper)">{{ compactRank(paper) }}</span>
+          </td>
+          <td class="score-cell px-3 py-2 align-top">
+            <span class="badge badge-score">{{ displayScore(paper.final_score) }}</span>
+          </td>
+          <td class="priority-cell px-3 py-2 align-top">
+            <span class="badge badge-priority" :class="priorityClass(paper)">{{ priorityLabel(paper) }}</span>
+          </td>
+          <td class="status-cell px-3 py-2 align-top">
+            <span class="badge badge-status">
+              {{ displayStatus(paper.status) }}
             </span>
           </td>
         </tr>
