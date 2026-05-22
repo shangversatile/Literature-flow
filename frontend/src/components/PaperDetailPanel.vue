@@ -72,6 +72,14 @@ const tableAssets = computed(() =>
   assets.value.filter((asset) => asset.asset_type === 'table_caption' || asset.asset_type === 'table_text'),
 )
 const shownPageImages = computed(() => pageImages.value.slice(0, 3))
+const summaryItems = computed(() => [
+  { title: 'Research Background', key: 'research_background' },
+  { title: 'Research Problem', key: 'research_problem' },
+  { title: 'Methodology', key: 'methodology' },
+  { title: 'Contributions', key: 'main_contributions' },
+  { title: 'Limitations', key: 'limitations' },
+  { title: 'Relevance', key: 'relevance_to_user_topic' },
+])
 
 watch(
   () => props.paper?.id,
@@ -324,88 +332,117 @@ function formatSummaryValue(value: unknown) {
 
       <section class="p-4">
         <h3 class="section-title">Rank & Scores</h3>
-        <dl class="detail-grid">
-          <dt>Rank Source</dt>
-          <dd class="break-all">{{ displayValue(paper.rank_source || paper.venue_rank_source) }}</dd>
-          <dt>Rank Value</dt>
-          <dd>{{ displayValue(paper.rank_value || paper.venue_rank) }}</dd>
-          <dt>Publication Status</dt>
+        <div class="grid grid-cols-2 gap-2">
+          <div class="metric-tile">
+            <span>Rank</span>
+            <strong>{{ displayValue(paper.rank_value || paper.venue_rank) }}</strong>
+          </div>
+          <div class="metric-tile">
+            <span>Final Score</span>
+            <strong>{{ displayValue(paper.final_score) }}</strong>
+          </div>
+        </div>
+        <dl class="detail-grid mt-3">
+          <dt>Publication</dt>
           <dd>{{ displayValue(paper.publication_status) }}</dd>
           <dt>Venue Type</dt>
           <dd>{{ displayValue(paper.venue_type) }}</dd>
-          <dt>Final Score</dt>
-          <dd>{{ displayValue(paper.final_score) }}</dd>
-          <dt>Relevance</dt>
-          <dd>{{ displayValue(paper.relevance_score) }}</dd>
-          <dt>Authority</dt>
-          <dd>{{ displayValue(paper.authority_score) }}</dd>
-          <dt>Frontier</dt>
-          <dd>{{ displayValue(paper.frontier_score) }}</dd>
-          <dt>Accessibility</dt>
-          <dd>{{ displayValue(paper.accessibility_score) }}</dd>
+          <dt>Rank Source</dt>
+          <dd class="break-all">{{ displayValue(paper.rank_source || paper.venue_rank_source) }}</dd>
         </dl>
         <details class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-          <summary class="cursor-pointer font-medium text-slate-600">Rank note</summary>
+          <summary class="cursor-pointer font-medium text-slate-600">Rank note and score details</summary>
+          <dl class="detail-grid mt-2">
+            <dt>Relevance</dt>
+            <dd>{{ displayValue(paper.relevance_score) }}</dd>
+            <dt>Authority</dt>
+            <dd>{{ displayValue(paper.authority_score) }}</dd>
+            <dt>Frontier</dt>
+            <dd>{{ displayValue(paper.frontier_score) }}</dd>
+            <dt>Accessibility</dt>
+            <dd>{{ displayValue(paper.accessibility_score) }}</dd>
+          </dl>
           <p class="mt-2 leading-5">{{ displayValue(paper.rank_note || paper.venue_rank_note) }}</p>
         </details>
       </section>
 
       <section class="p-4">
         <h3 class="section-title">Actions</h3>
-        <label class="mb-3 block">
-          <span class="mb-1 block text-xs font-medium text-slate-500">Extraction Mode</span>
-          <select v-model="extractionMode" class="input h-9">
-            <option value="openai">openai</option>
-            <option value="mock">mock</option>
-          </select>
-        </label>
 
         <div class="space-y-3">
           <div class="action-group">
-            <h4>Primary Workflow</h4>
-            <button class="button-primary w-full" type="button" :disabled="!!loadingAction" @click="processSelectedPaper">
-              {{ loadingAction === 'process' ? 'Processing...' : 'Process Paper' }}
-            </button>
-          </div>
-
-          <div class="action-group">
-            <h4>Manual Steps</h4>
+            <div class="mb-3">
+              <h4>Primary Actions</h4>
+              <label class="mt-2 block">
+                <span class="mb-1 block text-xs font-medium text-slate-500">Extraction Mode</span>
+                <select v-model="extractionMode" class="input h-9">
+                  <option value="openai">openai - real LLM extraction</option>
+                  <option value="mock">mock - workflow test, no LLM call</option>
+                </select>
+              </label>
+            </div>
             <div class="grid grid-cols-2 gap-2">
-              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="resolveSelectedPdf">
-                {{ loadingAction === 'resolve' ? 'Resolving...' : 'Resolve PDF' }}
+              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="processSelectedPaper">
+                {{ loadingAction === 'process' ? 'Processing...' : 'Process Paper' }}
               </button>
-              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="downloadSelectedPdf">
-                {{ loadingAction === 'download' ? 'Downloading...' : 'Download PDF' }}
-              </button>
-              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="parseSelectedPdf">
-                {{ loadingAction === 'parse' ? 'Parsing...' : 'Parse PDF' }}
-              </button>
-              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="extractSelectedPaper">
-                {{ loadingAction === 'extract' ? 'Extracting...' : 'Run Extraction' }}
+              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="saveSelectedWorkspace">
+                {{ loadingAction === 'save-workspace' ? 'Saving...' : 'Save to Library' }}
               </button>
             </div>
           </div>
 
           <div class="action-group">
-            <h4>Review & Export</h4>
-            <div class="grid grid-cols-2 gap-2">
-              <button class="button-secondary col-span-2" type="button" :disabled="!!loadingAction" @click="loadLatestExtraction">
-                {{ loadingAction === 'latest' ? 'Loading...' : 'Load Latest Extraction' }}
+            <h4>Reading Actions</h4>
+            <div class="grid grid-cols-3 gap-2">
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="loadLatestExtraction">
+                {{ loadingAction === 'latest' ? 'Loading...' : 'Load Summary' }}
               </button>
               <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="previewSelectedMarkdown">
                 {{ loadingAction === 'preview-markdown' ? 'Loading...' : 'Preview Markdown' }}
               </button>
+              <button
+                class="button-secondary"
+                type="button"
+                :disabled="!paper.local_pdf_path"
+                @click="showPdfPreview = !showPdfPreview"
+              >
+                {{ showPdfPreview ? 'Hide PDF' : 'PDF Preview' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="action-group">
+            <h4>Export Actions</h4>
+            <div class="grid grid-cols-2 gap-2">
               <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedMarkdown">
                 {{ loadingAction === 'export-markdown' ? 'Exporting...' : 'Export Markdown' }}
               </button>
               <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedBibtex">
                 {{ loadingAction === 'export-bibtex' ? 'Exporting...' : 'Export BibTeX' }}
               </button>
-              <button class="button-secondary col-span-2" type="button" :disabled="!!loadingAction" @click="saveSelectedWorkspace">
-                {{ loadingAction === 'save-workspace' ? 'Saving...' : 'Save to Library' }}
-              </button>
             </div>
           </div>
+
+          <details class="action-group">
+            <summary class="cursor-pointer text-xs font-semibold text-slate-600">Advanced / Debug Actions</summary>
+            <div class="mt-3 grid grid-cols-2 gap-2">
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="resolveSelectedPdf">
+                {{ loadingAction === 'resolve' ? 'Resolving...' : 'Resolve PDF' }}
+              </button>
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="downloadSelectedPdf">
+                {{ loadingAction === 'download' ? 'Downloading...' : 'Download PDF' }}
+              </button>
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="parseSelectedPdf">
+                {{ loadingAction === 'parse' ? 'Parsing...' : 'Parse PDF' }}
+              </button>
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="extractSelectedPaper">
+                {{ loadingAction === 'extract' ? 'Extracting...' : 'Run Extraction' }}
+              </button>
+              <button class="button-secondary col-span-2" type="button" :disabled="!!loadingAction" @click="extractSelectedAssets">
+                {{ loadingAction === 'extract-assets' ? 'Extracting...' : 'Extract Assets' }}
+              </button>
+            </div>
+          </details>
         </div>
 
         <p v-if="errorMessage" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
@@ -434,78 +471,18 @@ function formatSummaryValue(value: unknown) {
       <section class="p-4">
         <h3 class="section-title">LLM Structured Summary</h3>
         <p v-if="!extractionData" class="text-sm text-slate-500">
-          No extraction loaded yet. Click Load Latest Extraction or Mock Extract.
+          No extraction loaded yet. Use Load Summary after processing the paper.
         </p>
-        <div v-else class="space-y-3">
-          <div class="summary-block">
-            <h4>Research Background</h4>
-            <p>{{ formatSummaryValue(summaryValue('research_background')) }}</p>
-          </div>
-          <div class="summary-block">
-            <h4>Research Problem</h4>
-            <p>{{ formatSummaryValue(summaryValue('research_problem')) }}</p>
-          </div>
-          <div class="summary-block">
-            <h4>Methodology</h4>
-            <p>{{ formatSummaryValue(summaryValue('methodology')) }}</p>
-          </div>
-          <div class="summary-block">
-            <h4>Main Contributions</h4>
-            <pre>{{ formatSummaryValue(summaryValue('main_contributions')) }}</pre>
-          </div>
-          <div class="summary-block">
-            <h4>Experiments / Evaluation</h4>
-            <p>{{ formatSummaryValue(summaryValue('experiments_or_evaluation')) }}</p>
-          </div>
-          <div class="summary-block">
-            <h4>Main Conclusions</h4>
-            <p>{{ formatSummaryValue(summaryValue('main_conclusions')) }}</p>
-          </div>
-          <div class="summary-block">
-            <h4>Limitations</h4>
-            <pre>{{ formatSummaryValue(summaryValue('limitations')) }}</pre>
-          </div>
-          <div class="summary-block">
-            <h4>Keywords</h4>
-            <pre>{{ formatSummaryValue(summaryValue('keywords')) }}</pre>
-          </div>
-          <div class="summary-block">
-            <h4>Relevance to User Topic</h4>
-            <p>{{ formatSummaryValue(summaryValue('relevance_to_user_topic')) }}</p>
-          </div>
-          <div class="summary-block">
-            <h4>Possible Follow-up Questions</h4>
-            <pre>{{ formatSummaryValue(summaryValue('possible_followup_questions')) }}</pre>
-          </div>
-          <div class="summary-block">
-            <h4>Evidence Chunk Indices</h4>
-            <pre>{{ formatSummaryValue(summaryValue('evidence_chunk_indices')) }}</pre>
+        <div v-else class="space-y-2">
+          <div v-for="item in summaryItems" :key="item.key" class="summary-block">
+            <h4>{{ item.title }}</h4>
+            <pre>{{ formatSummaryValue(summaryValue(item.key)) }}</pre>
           </div>
         </div>
       </section>
 
       <section class="p-4">
         <h3 class="section-title">PDF Preview</h3>
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-if="paper.local_pdf_path"
-            class="button-secondary"
-            type="button"
-            @click="showPdfPreview = !showPdfPreview"
-          >
-            {{ showPdfPreview ? 'Hide PDF Preview' : 'Preview PDF' }}
-          </button>
-          <a
-            v-if="paper.pdf_url"
-            class="button-secondary"
-            :href="paper.pdf_url"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Open PDF URL
-          </a>
-        </div>
-
         <p v-if="paper.local_pdf_path && !pdfPreviewSrc" class="mt-2 text-xs text-slate-500">
           Local PDF path: {{ paper.local_pdf_path }}. Preview needs a file under storage/pdfs.
         </p>
@@ -518,14 +495,20 @@ function formatSummaryValue(value: unknown) {
         <p v-if="!paper.local_pdf_path && !paper.pdf_url" class="text-sm text-slate-500">
           No PDF available yet.
         </p>
+        <a
+          v-if="paper.pdf_url"
+          class="mt-2 inline-flex text-xs font-medium text-slate-600 hover:text-slate-950"
+          :href="paper.pdf_url"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Open source PDF URL
+        </a>
       </section>
 
       <section class="p-4">
         <h3 class="section-title">Assets</h3>
-        <div class="mb-3 grid grid-cols-2 gap-2">
-          <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="extractSelectedAssets">
-            {{ loadingAction === 'extract-assets' ? 'Extracting...' : 'Extract Assets' }}
-          </button>
+        <div class="mb-3">
           <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="loadSelectedAssets">
             {{ loadingAction === 'assets' ? 'Loading...' : 'Load Assets' }}
           </button>

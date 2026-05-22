@@ -60,39 +60,47 @@ onMounted(loadPapers)
 </script>
 
 <template>
-  <main class="flex h-screen overflow-hidden bg-slate-50 text-slate-900">
-    <FilterSidebar @filter-change="handleFilterChange" @refresh="loadPapers" />
-
-    <section class="flex min-w-0 flex-1 flex-col">
-      <header class="flex h-12 shrink-0 items-center justify-between border-b border-slate-200 bg-white px-4">
+  <main class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
+    <header class="shrink-0 border-b border-slate-200 bg-white px-5 py-3">
+      <div class="flex items-center justify-between gap-4">
         <div>
-          <h1 class="text-sm font-semibold">Paper Dashboard</h1>
-          <p class="text-xs text-slate-500">{{ filteredPapers.length }} of {{ papers.length }} papers</p>
+          <h1 class="text-base font-semibold tracking-tight text-slate-950">LitFlow</h1>
+          <p class="text-xs text-slate-500">
+            {{ filteredPapers.length }} visible · {{ papers.length }} total
+            <span v-if="selectedPaper"> · Reading #{{ selectedPaper.id }}</span>
+          </p>
         </div>
         <div class="text-xs text-slate-500">
-          <span v-if="loading">Loading...</span>
+          <span v-if="loading">Refreshing library...</span>
           <span v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</span>
+          <span v-else>Workspace ready</span>
         </div>
-      </header>
-
-      <SearchPanel @refresh="loadPapers" />
-
-      <div v-if="!loading && papers.length === 0" class="flex flex-1 items-center justify-center p-6 text-sm text-slate-500">
-        No papers yet. Use backend /search/all/save first.
       </div>
+    </header>
 
-      <PaperTable
-        v-else
-        class="min-h-0 flex-1"
-        :papers="filteredPapers"
-        :selected-paper-id="selectedPaperId"
-        @select="selectPaper"
-      />
-    </section>
+    <SearchPanel @refresh="loadPapers" />
 
-    <aside class="flex h-full w-[420px] shrink-0 flex-col overflow-auto border-l border-slate-200 bg-white">
-      <PaperDetailPanel :paper="selectedPaper" @refresh="loadPapers" />
-      <RagAskBox :paper-id="selectedPaperId" />
-    </aside>
+    <div class="grid min-h-0 flex-1 grid-cols-[220px_minmax(520px,1fr)_440px] overflow-hidden">
+      <FilterSidebar @filter-change="handleFilterChange" @refresh="loadPapers" />
+
+      <section class="flex min-w-0 flex-col overflow-hidden border-r border-slate-200 bg-white">
+        <div v-if="!loading && papers.length === 0" class="flex flex-1 items-center justify-center p-6 text-sm text-slate-500">
+          Search and save papers to build your library.
+        </div>
+
+        <PaperTable
+          v-else
+          class="min-h-0 flex-1"
+          :papers="filteredPapers"
+          :selected-paper-id="selectedPaperId"
+          @select="selectPaper"
+        />
+      </section>
+
+      <aside class="flex min-w-0 flex-col overflow-auto bg-white">
+        <PaperDetailPanel :paper="selectedPaper" @refresh="loadPapers" />
+        <RagAskBox :paper-id="selectedPaperId" />
+      </aside>
+    </div>
   </main>
 </template>

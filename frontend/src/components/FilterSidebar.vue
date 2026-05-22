@@ -28,9 +28,9 @@ watch(
 </script>
 
 <template>
-  <aside class="flex h-full w-56 shrink-0 flex-col border-r border-slate-200 bg-slate-50 p-3">
+  <aside class="flex h-full shrink-0 flex-col border-r border-slate-200 bg-slate-50 p-3">
     <div class="mb-4 flex items-center justify-between">
-      <h1 class="text-sm font-semibold text-slate-900">LitFlow</h1>
+      <h2 class="text-xs font-semibold uppercase tracking-normal text-slate-500">Library</h2>
       <button class="button-secondary" type="button" @click="emit('refresh')">Refresh</button>
     </div>
 

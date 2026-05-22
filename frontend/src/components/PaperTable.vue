@@ -11,7 +11,7 @@ const emit = defineEmits<{
   select: [paper: Paper]
 }>()
 
-type SortKey = 'year' | 'citation_count' | 'final_score'
+type SortKey = 'year' | 'final_score'
 
 const sortKey = ref<SortKey>('final_score')
 const sortDirection = ref<'asc' | 'desc'>('desc')
@@ -60,27 +60,21 @@ function displayAuthors(paper: Paper) {
     <table class="w-full table-fixed border-collapse text-left text-sm">
       <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-normal text-slate-500">
         <tr>
-          <th class="w-[28%] px-3 py-2 font-medium">Title</th>
-          <th class="w-[13%] px-3 py-2 font-medium">Authors</th>
+          <th class="w-[34%] px-3 py-2 font-medium">Title</th>
+          <th class="w-[17%] px-3 py-2 font-medium">Authors</th>
           <th class="w-[8%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('year')">
               Year {{ sortMark('year') }}
             </button>
           </th>
-          <th class="w-[13%] px-3 py-2 font-medium">Venue</th>
-          <th class="w-[8%] px-3 py-2 font-medium">
-            <button class="table-sort-button" type="button" @click="setSort('citation_count')">
-              Cites {{ sortMark('citation_count') }}
-            </button>
-          </th>
+          <th class="w-[15%] px-3 py-2 font-medium">Venue</th>
+          <th class="w-[8%] px-3 py-2 font-medium">Rank</th>
           <th class="w-[9%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('final_score')">
-              Score {{ sortMark('final_score') }}
+              Final {{ sortMark('final_score') }}
             </button>
           </th>
-          <th class="w-[8%] px-3 py-2 font-medium">Rank</th>
-          <th class="w-[9%] px-3 py-2 font-medium">Pub</th>
-          <th class="w-[4%] px-3 py-2 font-medium">Status</th>
+          <th class="w-[9%] px-3 py-2 font-medium">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -98,10 +92,8 @@ function displayAuthors(paper: Paper) {
           <td class="truncate px-3 py-2 align-top text-slate-600">{{ displayAuthors(paper) }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ paper.year || '-' }}</td>
           <td class="truncate px-3 py-2 align-top text-slate-600">{{ paper.venue || '-' }}</td>
-          <td class="px-3 py-2 align-top text-slate-600">{{ paper.citation_count ?? 0 }}</td>
-          <td class="px-3 py-2 align-top text-slate-600">{{ displayScore(paper.final_score) }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ displayRank(paper) }}</td>
-          <td class="px-3 py-2 align-top text-slate-600">{{ paper.publication_status || '-' }}</td>
+          <td class="px-3 py-2 align-top text-slate-600">{{ displayScore(paper.final_score) }}</td>
           <td class="px-3 py-2 align-top">
             <span class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
               {{ paper.status }}
