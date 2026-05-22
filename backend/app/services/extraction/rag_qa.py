@@ -246,13 +246,14 @@ def mock_answer_question(
 ) -> dict:
     indices = [chunk["chunk_index"] for chunk in evidence_chunks]
     methods = sorted({chunk.get("retrieval_method", "unknown") for chunk in evidence_chunks})
+    method_text = ", ".join(methods) if methods else "unknown"
     matched_terms = {
         chunk["chunk_index"]: chunk.get("matched_terms", []) for chunk in evidence_chunks
     }
     return {
         "answer": (
             "Mock RAG answer: no external API was called. "
-            f"For paper '{paper.title}', retrieval_method={methods}. "
+            f"For paper '{paper.title}', retrieval_method={method_text}. "
             f"Top evidence chunk indices: {indices}. "
             f"Matched terms by chunk: {matched_terms}. "
             f"Question: {question}"
