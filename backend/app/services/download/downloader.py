@@ -19,7 +19,17 @@ def is_pdf_response(response: httpx.Response) -> bool:
     return "application/pdf" in content_type or response.content.startswith(b"%PDF")
 
 
-async def download_pdf(url: str, paper_id: int) -> str:
+def safe_pdf_filename(filename: str | None, paper_id: int) -> str:
+    if not filename:
+        return f"{paper_id}.pdf"
+
+    name = Path(filename).name
+    if not name.lower().endswith(".pdf"):
+        name = f"{name}.pdf"
+    return name
+
+
+async def download_pdf(url: str, paper_id: int, filename: str | None = None) -> str:
     if not url:
         raise PdfDownloadError("PDF URL is required.")
 
@@ -61,6 +71,7 @@ async def download_pdf(url: str, paper_id: int) -> str:
         raise PdfDownloadError("Downloaded content is not a PDF.")
 
     PDF_DIR.mkdir(parents=True, exist_ok=True)
-    pdf_path = PDF_DIR / f"{paper_id}.pdf"
+    pdf_filename = safe_pdf_filename(filename, paper_id)
+    pdf_path = PDF_DIR / pdf_filename
     pdf_path.write_bytes(response.content)
-    return f"storage/pdfs/{paper_id}.pdf"
+    return f"storage/pdfs/{pdf_filename}"

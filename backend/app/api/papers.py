@@ -40,10 +40,8 @@ from app.services.extraction.rag_qa import (
 )
 from app.services.extraction.text_chunker import chunk_text_pages
 from app.services.export.bibtex_exporter import export_paper_to_bibtex
-from app.services.export.markdown_exporter import (
-    build_export_filename,
-    export_paper_to_markdown,
-)
+from app.services.export.filename_utils import build_export_filename
+from app.services.export.markdown_exporter import export_paper_to_markdown
 from app.services.paper_enrichment import enrich_paper_for_display
 
 
@@ -293,7 +291,9 @@ async def process_paper(
             pdf_url = paper.pdf_url or await resolve_pdf_url(paper)
             if not pdf_url:
                 raise ValueError("No legal open-access PDF found.")
-            local_pdf_path = await download_pdf(pdf_url, paper_id)
+            enriched = enrich_paper_for_display(paper)
+            pdf_filename = build_export_filename(paper, enriched, "pdf")
+            local_pdf_path = await download_pdf(pdf_url, paper_id, filename=pdf_filename)
             paper.pdf_url = pdf_url
             paper.local_pdf_path = local_pdf_path
             paper.status = "PDF_DOWNLOADED"
@@ -442,7 +442,9 @@ async def download_paper_pdf(
         raise HTTPException(status_code=404, detail="No legal open-access PDF found")
 
     try:
-        local_pdf_path = await download_pdf(pdf_url, paper_id)
+        enriched = enrich_paper_for_display(paper)
+        pdf_filename = build_export_filename(paper, enriched, "pdf")
+        local_pdf_path = await download_pdf(pdf_url, paper_id, filename=pdf_filename)
     except PdfDownloadError as exc:
         raise HTTPException(status_code=502, detail=str(exc)) from exc
 
