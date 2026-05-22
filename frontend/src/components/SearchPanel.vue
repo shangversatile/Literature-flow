@@ -36,6 +36,11 @@ function displayValue(value: string | number | null | undefined) {
   return String(value)
 }
 
+function publicationBadgeClass(status: string | null | undefined) {
+  if (!status) return 'badge-muted'
+  return status.toLowerCase() === 'unpublished' ? 'badge-warning' : 'badge-muted'
+}
+
 function selectedPapers() {
   return searchResults.value.filter((paper) => selectedKeys.value.has(resultKey(paper)))
 }
@@ -141,22 +146,22 @@ async function saveAllResults() {
 </script>
 
 <template>
-  <section class="border-b border-slate-200 bg-white px-4 py-3">
-    <form class="flex flex-wrap items-end gap-2" @submit.prevent="runSearch">
+  <section class="workspace-card px-4 py-4">
+    <form class="flex flex-wrap items-end gap-3" @submit.prevent="runSearch">
       <label class="min-w-0 flex-1">
-        <span class="mb-1 block text-xs font-medium text-slate-500">Search query</span>
-        <input v-model="query" class="input h-9" placeholder="flashattention" type="text" />
+        <span class="mb-1 block text-xs font-semibold text-gray-500">Search candidate papers</span>
+        <input v-model="query" class="input h-11 text-base" placeholder="Search topics, methods, or paper titles" type="text" />
       </label>
 
       <label class="w-24">
-        <span class="mb-1 block text-xs font-medium text-slate-500">Limit</span>
-        <input v-model.number="limit" class="input h-9" max="50" min="1" type="number" />
+        <span class="mb-1 block text-xs font-semibold text-gray-500">Limit</span>
+        <input v-model.number="limit" class="input h-11" max="50" min="1" type="number" />
       </label>
 
-      <button class="button-primary h-9 px-4" type="submit" :disabled="!!loading">
+      <button class="button-primary h-11 px-5" type="submit" :disabled="!!loading">
         {{ loading === 'search' ? 'Searching...' : 'Search' }}
       </button>
-      <button class="button-secondary h-9 px-4" type="button" :disabled="!!loading" @click="saveAllResults">
+      <button class="button-ghost h-11 px-4" type="button" :disabled="!!loading" @click="saveAllResults">
         {{ loading === 'save-all' ? 'Saving...' : 'Save All Results' }}
       </button>
     </form>
@@ -171,28 +176,27 @@ async function saveAllResults() {
       </p>
     </div>
 
-    <div v-if="hasResults" class="mt-3 max-h-72 overflow-auto rounded-md border border-slate-200">
-      <div class="flex items-center gap-2 border-b border-slate-200 bg-slate-50 px-3 py-2">
-        <span class="mr-2 text-xs font-medium text-slate-600">Search Results</span>
+    <div v-if="hasResults" class="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
+      <div class="sticky top-0 z-20 flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
+        <span class="mr-2 text-xs font-semibold text-gray-700">Candidate Results</span>
         <button class="button-secondary" type="button" :disabled="!!loading" @click="selectAll">Select All</button>
         <button class="button-secondary" type="button" :disabled="!!loading" @click="clearSelection">Clear Selection</button>
-        <button class="button-secondary" type="button" :disabled="!!loading" @click="closeResults()">Close Results</button>
-        <button class="button-primary ml-auto" type="button" :disabled="!!loading" @click="saveSelected">
+        <button class="button-ghost" type="button" :disabled="!!loading" @click="closeResults()">Close</button>
+        <button class="button-success ml-auto" type="button" :disabled="!!loading" @click="saveSelected">
           {{ loading === 'save-selected' ? 'Saving...' : 'Save Selected' }}
         </button>
       </div>
 
-      <table class="w-full table-fixed border-collapse text-left text-xs">
-        <thead class="sticky top-0 bg-slate-50 text-slate-500">
-          <tr class="border-b border-slate-200">
+      <table class="compact-table text-xs">
+        <thead>
+          <tr>
             <th class="w-[4%] px-2 py-2"></th>
-            <th class="w-[35%] px-2 py-2 font-medium">Title</th>
+            <th class="w-[39%] px-2 py-2 font-medium">Title</th>
             <th class="w-[8%] px-2 py-2 font-medium">Year</th>
-            <th class="w-[13%] px-2 py-2 font-medium">Venue</th>
-            <th class="w-[8%] px-2 py-2 font-medium">Rank</th>
-            <th class="w-[8%] px-2 py-2 font-medium">Score</th>
+            <th class="w-[17%] px-2 py-2 font-medium">Venue / Rank</th>
+            <th class="w-[9%] px-2 py-2 font-medium">Score</th>
             <th class="w-[8%] px-2 py-2 font-medium">Cites</th>
-            <th class="w-[9%] px-2 py-2 font-medium">Pub</th>
+            <th class="w-[8%] px-2 py-2 font-medium">Pub</th>
             <th class="w-[7%] px-2 py-2 font-medium">Sources</th>
           </tr>
         </thead>
@@ -206,18 +210,22 @@ async function saveAllResults() {
               />
             </td>
             <td class="px-2 py-2 align-top">
-              <div class="line-clamp-2 font-medium text-slate-900">{{ paper.title }}</div>
-              <div v-if="paper.doi" class="truncate text-slate-400">{{ paper.doi }}</div>
+              <div class="line-clamp-2 font-semibold text-gray-950">{{ paper.title }}</div>
+              <div v-if="paper.doi" class="truncate text-gray-400">{{ paper.doi }}</div>
             </td>
-            <td class="px-2 py-2 align-top text-slate-600">{{ paper.year || '-' }}</td>
-            <td class="truncate px-2 py-2 align-top text-slate-600">
-              {{ paper.venue_normalized || paper.venue || '-' }}
+            <td class="px-2 py-2 align-top text-gray-600">{{ paper.year || '-' }}</td>
+            <td class="px-2 py-2 align-top text-gray-600">
+              <div class="truncate">{{ paper.venue_normalized || paper.venue || '-' }}</div>
+              <span class="badge badge-rank mt-1">{{ displayValue(paper.rank_value || paper.venue_rank) }}</span>
             </td>
-            <td class="px-2 py-2 align-top text-slate-600">{{ displayValue(paper.rank_value || paper.venue_rank) }}</td>
-            <td class="px-2 py-2 align-top text-slate-600">{{ displayScore(paper.final_score) }}</td>
-            <td class="px-2 py-2 align-top text-slate-600">{{ paper.citation_count ?? 0 }}</td>
-            <td class="px-2 py-2 align-top text-slate-600">{{ displayValue(paper.publication_status) }}</td>
-            <td class="truncate px-2 py-2 align-top text-slate-600">{{ paper.sources.join(', ') || paper.source }}</td>
+            <td class="px-2 py-2 align-top"><span class="badge badge-score">{{ displayScore(paper.final_score) }}</span></td>
+            <td class="px-2 py-2 align-top text-gray-600">{{ paper.citation_count ?? 0 }}</td>
+            <td class="px-2 py-2 align-top">
+              <span class="badge" :class="publicationBadgeClass(paper.publication_status)">
+                {{ displayValue(paper.publication_status) }}
+              </span>
+            </td>
+            <td class="truncate px-2 py-2 align-top text-gray-600">{{ paper.sources.join(', ') || paper.source }}</td>
           </tr>
         </tbody>
       </table>

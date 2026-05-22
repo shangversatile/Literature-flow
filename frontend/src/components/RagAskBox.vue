@@ -43,25 +43,25 @@ async function ask() {
 </script>
 
 <template>
-  <section class="bg-white p-4">
-    <h2 class="mb-3 text-sm font-semibold text-slate-950">Ask Paper</h2>
+  <section class="panel-card">
+    <h2 class="mb-3 text-sm font-semibold text-gray-950">Ask Paper</h2>
 
-    <div v-if="!paperId" class="text-sm text-slate-500">Select a paper before asking.</div>
+    <div v-if="!paperId" class="text-sm text-gray-500">Select a paper before asking.</div>
 
     <div v-else class="space-y-3">
       <textarea
         v-model="question"
-        class="input min-h-20 resize-y"
+        class="input min-h-24 resize-y"
         placeholder="Ask a question about this paper"
       />
 
       <div class="grid grid-cols-[1fr_1fr_auto] items-end gap-2">
         <label class="block">
-          <span class="mb-1 block text-xs text-slate-500">top_k</span>
+          <span class="mb-1 block text-xs text-gray-500">top_k</span>
           <input v-model.number="topK" class="input" max="10" min="1" type="number" />
         </label>
         <label class="block">
-          <span class="mb-1 block text-xs text-slate-500">mode</span>
+          <span class="mb-1 block text-xs text-gray-500">mode</span>
           <input v-model="mode" class="input" disabled type="text" />
         </label>
         <button class="button-primary h-9 px-4" type="button" :disabled="loading || !question.trim()" @click="ask">
@@ -75,31 +75,35 @@ async function ask() {
 
       <div v-if="response" class="space-y-4">
         <div>
-          <h3 class="mb-1 text-xs font-medium uppercase tracking-normal text-slate-500">Answer</h3>
-          <p class="whitespace-pre-wrap text-sm leading-6 text-slate-800">{{ response.answer }}</p>
+          <h3 class="mb-1 text-xs font-medium uppercase tracking-normal text-gray-500">Answer</h3>
+          <p class="max-h-56 overflow-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-6 text-gray-800">
+            {{ response.answer }}
+          </p>
         </div>
 
         <div>
-          <h3 class="mb-1 text-xs font-medium uppercase tracking-normal text-slate-500">Evidence Indices</h3>
-          <p class="text-sm text-slate-700">{{ response.evidence_chunk_indices.join(', ') || '-' }}</p>
+          <h3 class="mb-1 text-xs font-medium uppercase tracking-normal text-gray-500">Evidence Indices</h3>
+          <p class="text-sm text-gray-700">{{ response.evidence_chunk_indices.join(', ') || '-' }}</p>
         </div>
 
         <div>
-          <h3 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Evidence Chunks</h3>
+          <h3 class="mb-2 text-xs font-medium uppercase tracking-normal text-gray-500">Evidence Chunks</h3>
           <div class="space-y-2">
             <article
               v-for="chunk in response.evidence_chunks"
               :key="chunk.chunk_index"
-              class="rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700"
+              class="rounded-xl border border-gray-200 bg-white p-3 text-xs text-gray-700"
             >
-              <div class="mb-2 flex flex-wrap gap-x-3 gap-y-1 text-slate-500">
-                <span>chunk {{ chunk.chunk_index }}</span>
-                <span>score {{ chunk.score.toFixed(2) }}</span>
-                <span>pages {{ chunk.page_start ?? '-' }}-{{ chunk.page_end ?? '-' }}</span>
-                <span>Retrieval Method {{ chunk.retrieval_method || '-' }}</span>
-                <span>Matched Terms {{ chunk.matched_terms?.length ? chunk.matched_terms.join(', ') : '-' }}</span>
+              <div class="mb-2 flex flex-wrap gap-1.5">
+                <span class="badge badge-muted">chunk {{ chunk.chunk_index }}</span>
+                <span class="badge badge-score">score {{ chunk.score.toFixed(2) }}</span>
+                <span class="badge badge-muted">pages {{ chunk.page_start ?? '-' }}-{{ chunk.page_end ?? '-' }}</span>
+                <span class="badge badge-rank">{{ chunk.retrieval_method || '-' }}</span>
+                <span class="badge badge-muted">
+                  {{ chunk.matched_terms?.length ? chunk.matched_terms.join(', ') : '-' }}
+                </span>
               </div>
-              <p class="whitespace-pre-wrap leading-5">{{ chunk.text.slice(0, 500) }}</p>
+              <p class="max-h-32 overflow-auto whitespace-pre-wrap leading-5">{{ chunk.text.slice(0, 700) }}</p>
             </article>
           </div>
         </div>

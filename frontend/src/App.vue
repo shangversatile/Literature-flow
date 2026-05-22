@@ -10,7 +10,8 @@ import type { Paper } from './types'
 
 const papers = ref<Paper[]>([])
 const selectedPaperId = ref<number | null>(null)
-const statusFilter = ref('ALL')
+const stageFilter = ref('ALL')
+const capabilityFilter = ref('ALL')
 const yearFilter = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
@@ -23,10 +24,19 @@ const filteredPapers = computed(() => {
   const year = yearFilter.value.trim()
 
   return papers.value.filter((paper) => {
-    const statusMatches = statusFilter.value === 'ALL' || paper.status === statusFilter.value
+    const stageMatches = stageFilter.value === 'ALL' || paper.status === stageFilter.value
+    const capabilityMatches = capabilityFilter.value === 'ALL' || paperMatchesCapability(paper, capabilityFilter.value)
     const yearMatches = !year || String(paper.year ?? '').includes(year)
-    return statusMatches && yearMatches
+    return stageMatches && capabilityMatches && yearMatches
   })
+})
+
+const llmExtractedCount = computed(() => {
+  return papers.value.filter((paper) => paper.status === 'LLM_EXTRACTED').length
+})
+
+const pdfDownloadedCount = computed(() => {
+  return papers.value.filter((paper) => paper.status === 'PDF_DOWNLOADED' || paper.local_pdf_path).length
 })
 
 async function loadPapers() {
@@ -47,8 +57,25 @@ async function loadPapers() {
   }
 }
 
-function handleFilterChange(filters: { status: string; year: string }) {
-  statusFilter.value = filters.status
+function paperMatchesCapability(paper: Paper, capability: string) {
+  if (capability === 'HAS_PDF') {
+    return (
+      Boolean(paper.local_pdf_path) ||
+      ['PDF_DOWNLOADED', 'TEXT_EXTRACTED', 'LLM_EXTRACTED'].includes(paper.status)
+    )
+  }
+  if (capability === 'HAS_TEXT') {
+    return ['TEXT_EXTRACTED', 'LLM_EXTRACTED'].includes(paper.status)
+  }
+  if (capability === 'HAS_EXTRACTION') {
+    return paper.status === 'LLM_EXTRACTED'
+  }
+  return true
+}
+
+function handleFilterChange(filters: { stage: string; capability: string; year: string }) {
+  stageFilter.value = filters.stage
+  capabilityFilter.value = filters.capability
   yearFilter.value = filters.year
 }
 
@@ -60,31 +87,40 @@ onMounted(loadPapers)
 </script>
 
 <template>
-  <main class="flex h-screen flex-col overflow-hidden bg-slate-50 text-slate-900">
-    <header class="shrink-0 border-b border-slate-200 bg-white px-5 py-3">
+  <main class="app-shell flex h-screen flex-col overflow-hidden">
+    <header class="shrink-0 border-b border-gray-200 bg-white px-6 py-4">
       <div class="flex items-center justify-between gap-4">
         <div>
-          <h1 class="text-base font-semibold tracking-tight text-slate-950">LitFlow</h1>
-          <p class="text-xs text-slate-500">
-            {{ filteredPapers.length }} visible · {{ papers.length }} total
-            <span v-if="selectedPaper"> · Reading #{{ selectedPaper.id }}</span>
-          </p>
+          <h1 class="text-lg font-semibold tracking-tight text-gray-950">LitFlow</h1>
+          <p class="text-xs text-gray-500">Automated Literature Intelligence Workspace</p>
         </div>
-        <div class="text-xs text-slate-500">
-          <span v-if="loading">Refreshing library...</span>
-          <span v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</span>
-          <span v-else>Workspace ready</span>
+        <div class="text-right text-xs leading-5 text-gray-500">
+          <div>Backend: 127.0.0.1:8000</div>
+          <div>Frontend: localhost:5173</div>
+          <div>
+            <span v-if="loading">Refreshing library...</span>
+            <span v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</span>
+            <span v-else>{{ filteredPapers.length }} visible / {{ papers.length }} total</span>
+          </div>
         </div>
       </div>
     </header>
 
-    <SearchPanel @refresh="loadPapers" />
+    <div class="shrink-0 px-4 pt-4">
+      <SearchPanel @refresh="loadPapers" />
+    </div>
 
-    <div class="grid min-h-0 flex-1 grid-cols-[220px_minmax(520px,1fr)_440px] overflow-hidden">
-      <FilterSidebar @filter-change="handleFilterChange" @refresh="loadPapers" />
+    <div class="grid min-h-0 flex-1 grid-cols-[230px_minmax(560px,1fr)_470px] gap-4 overflow-hidden p-4">
+      <FilterSidebar
+        :total-papers="papers.length"
+        :llm-extracted-count="llmExtractedCount"
+        :pdf-downloaded-count="pdfDownloadedCount"
+        @filter-change="handleFilterChange"
+        @refresh="loadPapers"
+      />
 
-      <section class="flex min-w-0 flex-col overflow-hidden border-r border-slate-200 bg-white">
-        <div v-if="!loading && papers.length === 0" class="flex flex-1 items-center justify-center p-6 text-sm text-slate-500">
+      <section class="workspace-card flex min-w-0 flex-col overflow-hidden">
+        <div v-if="!loading && papers.length === 0" class="flex flex-1 items-center justify-center p-6 text-sm text-gray-500">
           Search and save papers to build your library.
         </div>
 
@@ -97,7 +133,7 @@ onMounted(loadPapers)
         />
       </section>
 
-      <aside class="flex min-w-0 flex-col overflow-auto bg-white">
+      <aside class="flex min-w-0 flex-col gap-4 overflow-auto">
         <PaperDetailPanel :paper="selectedPaper" @refresh="loadPapers" />
         <RagAskBox :paper-id="selectedPaperId" />
       </aside>

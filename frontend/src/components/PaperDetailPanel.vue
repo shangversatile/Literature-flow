@@ -291,15 +291,20 @@ function formatSummaryValue(value: unknown) {
 </script>
 
 <template>
-  <section class="bg-white">
-    <div v-if="!paper" class="p-4 text-sm text-slate-500">Select a paper to see details.</div>
+  <section class="space-y-4">
+    <div v-if="!paper" class="panel-card text-sm text-gray-500">Select a paper to see details.</div>
 
-    <div v-else class="divide-y divide-slate-200">
-      <section class="p-4">
-        <h2 class="text-base font-semibold leading-6 text-slate-950">{{ paper.title }}</h2>
+    <div v-else class="space-y-4">
+      <section class="panel-card">
+        <h2 class="text-lg font-semibold leading-6 text-gray-950">{{ paper.title }}</h2>
+        <div class="mt-2 flex flex-wrap gap-2">
+          <span class="badge badge-status">{{ paper.status }}</span>
+          <span class="badge badge-rank">{{ displayValue(paper.rank_value || paper.venue_rank) }}</span>
+          <span class="badge badge-score">Final {{ displayValue(paper.final_score) }}</span>
+        </div>
       </section>
 
-      <section class="p-4">
+      <section class="panel-card">
         <h3 class="section-title">Metadata</h3>
         <dl class="detail-grid">
           <dt>Year</dt>
@@ -311,26 +316,34 @@ function formatSummaryValue(value: unknown) {
           <dt>Venue Normalized</dt>
           <dd>{{ displayValue(paper.venue_normalized) }}</dd>
           <dt>DOI</dt>
-          <dd class="break-all">{{ paper.doi || '-' }}</dd>
+          <dd class="break-all">
+            <span v-if="!paper.doi">-</span>
+            <a v-else class="text-link" :href="`https://doi.org/${paper.doi}`" target="_blank" rel="noreferrer">
+              {{ paper.doi }}
+            </a>
+          </dd>
           <dt>Citations</dt>
           <dd>{{ paper.citation_count ?? 0 }}</dd>
           <dt>Status</dt>
           <dd>{{ paper.status }}</dd>
           <dt>PDF URL</dt>
-          <dd class="break-all">{{ paper.pdf_url || '-' }}</dd>
+          <dd class="break-all">
+            <span v-if="!paper.pdf_url">-</span>
+            <a v-else class="text-link" :href="paper.pdf_url" target="_blank" rel="noreferrer">{{ paper.pdf_url }}</a>
+          </dd>
           <dt>Local PDF</dt>
           <dd class="break-all">{{ paper.local_pdf_path || '-' }}</dd>
         </dl>
 
         <div class="mt-3">
-          <h4 class="mb-1 text-xs font-medium uppercase tracking-normal text-slate-500">Abstract</h4>
-          <p class="max-h-32 overflow-auto whitespace-pre-wrap text-sm leading-6 text-slate-700">
+          <h4 class="mb-1 text-xs font-medium uppercase tracking-normal text-gray-500">Abstract</h4>
+          <p class="max-h-32 overflow-auto whitespace-pre-wrap text-sm leading-6 text-gray-700">
             {{ paper.abstract || 'No abstract.' }}
           </p>
         </div>
       </section>
 
-      <section class="p-4">
+      <section class="panel-card">
         <h3 class="section-title">Rank & Scores</h3>
         <div class="grid grid-cols-2 gap-2">
           <div class="metric-tile">
@@ -350,8 +363,8 @@ function formatSummaryValue(value: unknown) {
           <dt>Rank Source</dt>
           <dd class="break-all">{{ displayValue(paper.rank_source || paper.venue_rank_source) }}</dd>
         </dl>
-        <details class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-          <summary class="cursor-pointer font-medium text-slate-600">Rank note and score details</summary>
+        <details class="mt-3 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-700">
+          <summary class="cursor-pointer font-medium text-gray-600">Rank note and score details</summary>
           <dl class="detail-grid mt-2">
             <dt>Relevance</dt>
             <dd>{{ displayValue(paper.relevance_score) }}</dd>
@@ -366,7 +379,7 @@ function formatSummaryValue(value: unknown) {
         </details>
       </section>
 
-      <section class="p-4">
+      <section class="panel-card">
         <h3 class="section-title">Actions</h3>
 
         <div class="space-y-3">
@@ -424,7 +437,7 @@ function formatSummaryValue(value: unknown) {
           </div>
 
           <details class="action-group">
-            <summary class="cursor-pointer text-xs font-semibold text-slate-600">Advanced / Debug Actions</summary>
+            <summary class="cursor-pointer text-xs font-semibold text-gray-600">Advanced Debug</summary>
             <div class="mt-3 grid grid-cols-2 gap-2">
               <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="resolveSelectedPdf">
                 {{ loadingAction === 'resolve' ? 'Resolving...' : 'Resolve PDF' }}
@@ -450,7 +463,7 @@ function formatSummaryValue(value: unknown) {
         </p>
       </section>
 
-      <section v-if="processResult" class="p-4">
+      <section v-if="processResult" class="panel-card">
         <h3 class="section-title">Process Result</h3>
         <div class="space-y-2">
           <div
@@ -468,7 +481,7 @@ function formatSummaryValue(value: unknown) {
         </div>
       </section>
 
-      <section class="p-4">
+      <section class="panel-card">
         <h3 class="section-title">LLM Structured Summary</h3>
         <p v-if="!extractionData" class="text-sm text-slate-500">
           No extraction loaded yet. Use Load Summary after processing the paper.
@@ -481,7 +494,7 @@ function formatSummaryValue(value: unknown) {
         </div>
       </section>
 
-      <section class="p-4">
+      <section class="panel-card">
         <h3 class="section-title">PDF Preview</h3>
         <p v-if="paper.local_pdf_path && !pdfPreviewSrc" class="mt-2 text-xs text-slate-500">
           Local PDF path: {{ paper.local_pdf_path }}. Preview needs a file under storage/pdfs.
@@ -506,7 +519,7 @@ function formatSummaryValue(value: unknown) {
         </a>
       </section>
 
-      <section class="p-4">
+      <section class="panel-card">
         <h3 class="section-title">Assets</h3>
         <div class="mb-3">
           <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="loadSelectedAssets">
@@ -575,7 +588,7 @@ function formatSummaryValue(value: unknown) {
               class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"
             >
               <div class="mb-1 font-medium text-slate-600">
-                {{ asset.asset_type }} · Page {{ asset.page_number ?? '-' }}
+                {{ asset.asset_type }} - Page {{ asset.page_number ?? '-' }}
               </div>
               <pre class="max-h-32 overflow-auto whitespace-pre-wrap leading-5">{{ asset.text_content || asset.caption || '-' }}</pre>
             </div>
@@ -583,7 +596,7 @@ function formatSummaryValue(value: unknown) {
         </div>
       </section>
 
-      <section v-if="workspaceResult" class="p-4">
+      <section v-if="workspaceResult" class="panel-card">
         <h3 class="section-title">Library Workspace</h3>
         <dl class="detail-grid">
           <dt>Workspace</dt>
@@ -601,7 +614,7 @@ function formatSummaryValue(value: unknown) {
         </dl>
       </section>
 
-      <section class="p-4">
+      <section class="panel-card">
         <h3 class="section-title">Markdown Preview</h3>
         <p v-if="loadingAction === 'preview-markdown'" class="text-sm text-slate-500">
           Loading Markdown preview...

@@ -18,6 +18,22 @@ def normalize_key(text: str | None) -> str:
     return re.sub(r"\s+", " ", value).strip()
 
 
+def alias_keys(venue_key: str) -> list[str]:
+    if not venue_key:
+        return []
+    if (
+        re.search(r"\b(?:nips|neurips)\b", venue_key)
+        or "neural information processing systems" in venue_key
+    ):
+        return [
+            "neurips",
+            "nips",
+            "advances in neural information processing systems",
+            "neural information processing systems",
+        ]
+    return []
+
+
 @lru_cache(maxsize=1)
 def load_core_conference_rankings() -> dict:
     if not CORE_RANKING_CSV.exists():
@@ -54,8 +70,18 @@ def lookup_core_conference_rank(venue: str | None) -> dict | None:
     if direct_match:
         return direct_match
 
+    for alias_key in alias_keys(venue_key):
+        alias_match = rankings.get(alias_key)
+        if alias_match:
+            return alias_match
+
     for key, row in rankings.items():
         if key and key in venue_key:
             return row
+
+    for alias_key in alias_keys(venue_key):
+        for key, row in rankings.items():
+            if key and (key in alias_key or alias_key in key):
+                return row
 
     return None

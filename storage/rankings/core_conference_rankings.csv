@@ -1,5 +1,6 @@
 acronym,name,rank,source,year,note
 NeurIPS,Advances in Neural Information Processing Systems,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+NIPS,Neural Information Processing Systems,A*,CORE,2026,Alias for NeurIPS/NIPS; seed CORE-style ranking
 ICML,International Conference on Machine Learning,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
 ICLR,International Conference on Learning Representations,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
 ACL,Association for Computational Linguistics,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available

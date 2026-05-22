@@ -71,7 +71,10 @@ CONFERENCE_VENUES = A_STAR_CONFERENCES | A_CONFERENCES | B_CONFERENCES
 
 VENUE_ALIASES = {
     "advances in neural information processing systems": "NeurIPS",
+    "conference on neural information processing systems": "NeurIPS",
+    "neural information processing systems": "NeurIPS",
     "neurips": "NeurIPS",
+    "nips": "NeurIPS",
     "international conference on machine learning": "ICML",
     "icml": "ICML",
     "international conference on learning representations": "ICLR",
@@ -144,6 +147,10 @@ def normalize_venue_name(venue: str | None) -> str | None:
         return None
 
     key = _normalize_lookup_text(stripped)
+    if re.search(r"\b(?:nips|neurips)\b", key):
+        return "NeurIPS"
+    if "neural information processing systems" in key:
+        return "NeurIPS"
     return VENUE_ALIASES.get(key, stripped)
 
 
