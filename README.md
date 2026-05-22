@@ -28,6 +28,34 @@ LitFlow is a minimal project skeleton for automated literature extraction and kn
 └── .gitignore
 ```
 
+## Windows One-Click Start
+
+From the project root, double-click:
+
+```bat
+start-litflow.bat
+```
+
+Or run in PowerShell:
+
+```powershell
+.\start-litflow.bat
+```
+
+The script opens separate terminal windows for the backend and frontend.
+
+- Backend docs: `http://127.0.0.1:8000/docs`
+- Frontend app: `http://localhost:5173`
+
+To stop LitFlow, close the two terminal windows or run:
+
+```bat
+stop-litflow.bat
+```
+
+The stop script prints safe stop instructions and does not kill ports
+automatically.
+
 ## Start Backend
 
 ```bash
