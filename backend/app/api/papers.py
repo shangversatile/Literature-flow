@@ -14,6 +14,7 @@ from app.models.paper_text import PaperText
 from app.schemas.extraction import ExtractRequest, ExtractResponse, ExtractionRead
 from app.schemas.paper import PaperCreate, PaperRead, PaperUpdate
 from app.schemas.paper_text import PaperChunkRead, PaperTextRead, ParsePdfResponse
+from app.schemas.rag import AskPaperRequest, AskPaperResponse
 from app.services.download.downloader import PdfDownloadError, download_pdf
 from app.services.download.resolver import resolve_pdf_url
 from app.services.download.unpaywall import (
@@ -26,6 +27,11 @@ from app.services.extraction.llm_extractor import (
     mock_extract,
 )
 from app.services.extraction.pdf_parser import extract_text_from_pdf
+from app.services.extraction.rag_qa import (
+    answer_with_openai,
+    mock_answer_question,
+    retrieve_relevant_chunks,
+)
 from app.services.extraction.text_chunker import chunk_text_pages
 
 
@@ -233,6 +239,68 @@ def read_paper_chunks(
         .where(PaperChunk.paper_id == paper_id)
         .order_by(PaperChunk.chunk_index)
     ).all()
+
+
+@router.post("/{paper_id}/ask", response_model=AskPaperResponse)
+async def ask_paper_question(
+    paper_id: int,
+    request: AskPaperRequest,
+    session: Session = Depends(get_session),
+) -> AskPaperResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    question = request.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question must not be empty.")
+
+    if request.mode not in {"mock", "openai"}:
+        raise HTTPException(status_code=400, detail="Mode must be 'mock' or 'openai'.")
+
+    chunks = session.exec(
+        select(PaperChunk)
+        .where(PaperChunk.paper_id == paper_id)
+        .order_by(PaperChunk.chunk_index)
+    ).all()
+    if not chunks:
+        raise HTTPException(
+            status_code=400,
+            detail="No paper chunks found. Please call parse-pdf first.",
+        )
+
+    top_k = max(1, min(request.top_k, 10))
+    evidence_chunks = retrieve_relevant_chunks(question, chunks, top_k)
+
+    if request.mode == "mock":
+        data = mock_answer_question(paper, question, evidence_chunks)
+    else:
+        try:
+            answer, evidence_chunk_indices, _raw_llm_output = await answer_with_openai(
+                paper,
+                question,
+                evidence_chunks,
+            )
+            data = {
+                "answer": answer,
+                "evidence_chunk_indices": evidence_chunk_indices,
+            }
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"OpenAI RAG question answering failed: {exc}",
+            ) from exc
+
+    return AskPaperResponse(
+        paper_id=paper_id,
+        question=question,
+        mode=request.mode,
+        answer=data["answer"],
+        evidence_chunks=evidence_chunks,
+        evidence_chunk_indices=data["evidence_chunk_indices"],
+    )
 
 
 @router.post("/{paper_id}/extract", response_model=ExtractResponse)

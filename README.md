@@ -137,6 +137,28 @@ curl -X POST "http://127.0.0.1:8000/papers/1/extract" ^
   -d "{\"mode\":\"openai\",\"user_topic\":\"LLM inference systems\",\"max_chunks\":8}"
 ```
 
+Single-paper RAG question answering:
+
+Run `parse-pdf` first so the paper has saved `PaperChunk` records. The RAG
+endpoint uses simple keyword retrieval only; it does not use embeddings or a
+vector database.
+
+Mock mode does not call any external API:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/ask" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"question\":\"What is the main systems optimization in this paper?\",\"mode\":\"mock\",\"top_k\":5}"
+```
+
+OpenAI mode uses `OPENAI_API_KEY` and optional `LLM_MODEL` from `.env`:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/ask" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"question\":\"What is the main systems optimization in this paper?\",\"mode\":\"openai\",\"top_k\":5}"
+```
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`
