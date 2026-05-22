@@ -48,11 +48,19 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 }
 
 export function fetchPapers(): Promise<Paper[]> {
-  return request<Paper[]>('/papers')
+  return fetchEnrichedPapers()
 }
 
 export function fetchPaper(id: number): Promise<Paper> {
   return request<Paper>(`/papers/${id}`)
+}
+
+export function fetchEnrichedPapers(): Promise<Paper[]> {
+  return request<Paper[]>('/papers/enriched')
+}
+
+export function fetchEnrichedPaper(id: number): Promise<Paper> {
+  return request<Paper>(`/papers/${id}/enriched`)
 }
 
 export function updatePaper(id: number, payload: PaperUpdatePayload): Promise<Paper> {

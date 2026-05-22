@@ -12,7 +12,7 @@ from app.models.paper import Paper
 from app.models.paper_chunk import PaperChunk
 from app.models.paper_text import PaperText
 from app.schemas.extraction import ExtractRequest, ExtractResponse, ExtractionRead
-from app.schemas.paper import PaperCreate, PaperRead, PaperUpdate
+from app.schemas.paper import PaperCreate, PaperEnrichedRead, PaperRead, PaperUpdate
 from app.schemas.paper_text import PaperChunkRead, PaperTextRead, ParsePdfResponse
 from app.schemas.rag import AskPaperRequest, AskPaperResponse
 from app.schemas.workflow import (
@@ -38,6 +38,7 @@ from app.services.extraction.rag_qa import (
     retrieve_relevant_chunks,
 )
 from app.services.extraction.text_chunker import chunk_text_pages
+from app.services.paper_enrichment import enrich_paper_for_display
 
 
 router = APIRouter(prefix="/papers", tags=["papers"])
@@ -73,6 +74,29 @@ def create_paper(
 @router.get("", response_model=list[PaperRead])
 def read_papers(session: Session = Depends(get_session)) -> list[Paper]:
     return session.exec(select(Paper)).all()
+
+
+@router.get("/enriched", response_model=list[PaperEnrichedRead])
+def read_enriched_papers(
+    query: str | None = None,
+    session: Session = Depends(get_session),
+) -> list[PaperEnrichedRead]:
+    papers = session.exec(select(Paper)).all()
+    enriched = [enrich_paper_for_display(paper, query) for paper in papers]
+    enriched.sort(key=lambda paper: paper.final_score or 0.0, reverse=True)
+    return enriched
+
+
+@router.get("/{paper_id}/enriched", response_model=PaperEnrichedRead)
+def read_enriched_paper(
+    paper_id: int,
+    query: str | None = None,
+    session: Session = Depends(get_session),
+) -> PaperEnrichedRead:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    return enrich_paper_for_display(paper, query)
 
 
 @router.get("/{paper_id}", response_model=PaperRead)

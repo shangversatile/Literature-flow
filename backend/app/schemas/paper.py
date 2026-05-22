@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlmodel import SQLModel
+from sqlmodel import Field, SQLModel
 
 
 class PaperBase(SQLModel):
@@ -24,6 +24,22 @@ class PaperRead(PaperBase):
     normalized_title: str | None
     created_at: datetime
     updated_at: datetime
+
+
+class PaperEnrichedRead(PaperRead):
+    venue_normalized: str | None = None
+    publication_type: str | None = None
+    publication_status: str | None = None
+    venue_rank: str | None = None
+    venue_rank_source: str | None = None
+    venue_rank_note: str | None = None
+    relevance_score: float | None = None
+    authority_score: float | None = None
+    frontier_score: float | None = None
+    accessibility_score: float | None = None
+    final_score: float | None = None
+    quality_score: float | None = None
+    sources: list[str] = Field(default_factory=list)
 
 
 class PaperUpdate(SQLModel):

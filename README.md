@@ -125,6 +125,21 @@ curl -X POST "http://127.0.0.1:8000/papers/1/resolve-pdf"
 curl -X POST "http://127.0.0.1:8000/papers/1/download-pdf"
 ```
 
+Enriched paper display API:
+
+These endpoints read saved database papers and compute display-only score and
+venue rank fields at request time. They do not modify the database.
+
+```bash
+curl "http://127.0.0.1:8000/papers/enriched"
+curl "http://127.0.0.1:8000/papers/1/enriched"
+```
+
+The enriched responses include `final_score`, `venue_normalized`,
+`publication_type`, `publication_status`, and `venue_rank`. Venue rank uses
+`LitFlow-default-venue-rank-v1`, a configurable LitFlow default ranking suited
+for Dashboard display.
+
 PDF text parsing and RAG-ready chunks:
 
 Run `download-pdf` first so `Paper.local_pdf_path` points to a local PDF file,
