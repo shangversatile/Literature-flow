@@ -136,3 +136,13 @@ export function exportMarkdown(id: number): Promise<{ blob: Blob; filename: stri
 export function exportBibtex(id: number): Promise<{ blob: Blob; filename: string }> {
   return downloadRequest(`/papers/${id}/export/bibtex`, `paper-${id}.bib`)
 }
+
+export async function previewMarkdown(id: number): Promise<string> {
+  const response = await fetch(`${API_BASE}/papers/${id}/export/markdown`)
+
+  if (!response.ok) {
+    throw await readableError(response)
+  }
+
+  return response.text()
+}

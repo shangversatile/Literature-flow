@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import {
   downloadPdf,
   exportBibtex,
@@ -7,10 +7,13 @@ import {
   extractPaper,
   fetchLatestExtraction,
   parsePdf,
+  previewMarkdown,
   processPaper,
   resolvePdf,
 } from '../api/papers'
 import type { Extraction, Paper, ProcessPaperResponse } from '../types'
+
+const API_BASE = 'http://127.0.0.1:8000'
 
 const props = defineProps<{
   paper: Paper | null
@@ -24,6 +27,30 @@ const loadingAction = ref<string | null>(null)
 const errorMessage = ref('')
 const latestExtraction = ref<Extraction | null>(null)
 const processResult = ref<ProcessPaperResponse | null>(null)
+const showPdfPreview = ref(false)
+const markdownPreview = ref('')
+const extractionMode = ref<'mock' | 'openai'>('openai')
+
+const extractionData = computed<Record<string, unknown> | null>(() => {
+  if (!latestExtraction.value) return null
+  try {
+    const data = JSON.parse(latestExtraction.value.extracted_json) as unknown
+    return data && typeof data === 'object' && !Array.isArray(data)
+      ? (data as Record<string, unknown>)
+      : null
+  } catch {
+    return null
+  }
+})
+
+const pdfPreviewSrc = computed(() => {
+  const path = props.paper?.local_pdf_path
+  if (!path) return ''
+  const normalized = path.replace(/\\/g, '/')
+  const match = normalized.match(/(?:^|\/)storage\/pdfs\/(.+)$/)
+  if (!match) return ''
+  return `${API_BASE}/static/pdfs/${match[1].split('/').map(encodeURIComponent).join('/')}`
+})
 
 watch(
   () => props.paper?.id,
@@ -32,6 +59,8 @@ watch(
     latestExtraction.value = null
     processResult.value = null
     loadingAction.value = null
+    showPdfPreview.value = false
+    markdownPreview.value = ''
   },
 )
 
@@ -48,19 +77,14 @@ async function runAction(label: string, action: () => Promise<unknown>, shouldRe
     if (label === 'process') {
       processResult.value = result as ProcessPaperResponse
     }
+    if (label === 'preview-markdown') {
+      markdownPreview.value = result as string
+    }
     if (shouldRefresh) emit('refresh')
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Request failed'
   } finally {
     loadingAction.value = null
-  }
-}
-
-function extractionPreview(extraction: Extraction) {
-  try {
-    return JSON.stringify(JSON.parse(extraction.extracted_json), null, 2)
-  } catch {
-    return extraction.extracted_json
   }
 }
 
@@ -87,7 +111,7 @@ function extractSelectedPaper() {
   if (!id) return
   void runAction('extract', () =>
     extractPaper(id, {
-      mode: 'mock',
+      mode: extractionMode.value,
       user_topic: 'LLM inference systems',
       max_chunks: 8,
     }),
@@ -103,7 +127,7 @@ function processSelectedPaper() {
       download_pdf: true,
       parse_pdf: true,
       extract: true,
-      extract_mode: 'mock',
+      extract_mode: extractionMode.value,
       user_topic: 'LLM inference systems',
       max_chunks: 8,
     }),
@@ -114,6 +138,12 @@ function loadLatestExtraction() {
   const id = props.paper?.id
   if (!id) return
   void runAction('latest', () => fetchLatestExtraction(id), false)
+}
+
+function previewSelectedMarkdown() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction('preview-markdown', () => previewMarkdown(id), false)
 }
 
 function saveBlob(blob: Blob, filename: string) {
@@ -164,101 +194,148 @@ function displayValue(value: string | number | null | undefined) {
   if (typeof value === 'number') return value.toFixed(4)
   return value
 }
+
+function summaryValue(key: string) {
+  return extractionData.value?.[key]
+}
+
+function formatSummaryValue(value: unknown) {
+  if (value === null || value === undefined || value === '') return 'No data.'
+  if (Array.isArray(value)) {
+    return value.length ? value.map((item) => `- ${String(item)}`).join('\n') : 'No data.'
+  }
+  return String(value)
+}
 </script>
 
 <template>
-  <section class="border-b border-slate-200 bg-white p-4">
-    <div v-if="!paper" class="text-sm text-slate-500">Select a paper to see details.</div>
+  <section class="bg-white">
+    <div v-if="!paper" class="p-4 text-sm text-slate-500">Select a paper to see details.</div>
 
-    <div v-else>
-      <h2 class="mb-3 text-base font-semibold leading-6 text-slate-950">{{ paper.title }}</h2>
+    <div v-else class="divide-y divide-slate-200">
+      <section class="p-4">
+        <h2 class="text-base font-semibold leading-6 text-slate-950">{{ paper.title }}</h2>
+      </section>
 
-      <dl class="grid grid-cols-[112px_1fr] gap-x-3 gap-y-1 text-xs">
-        <dt class="text-slate-500">DOI</dt>
-        <dd class="break-all text-slate-800">{{ paper.doi || '-' }}</dd>
-        <dt class="text-slate-500">Year</dt>
-        <dd class="text-slate-800">{{ paper.year || '-' }}</dd>
-        <dt class="text-slate-500">Venue</dt>
-        <dd class="text-slate-800">{{ paper.venue || '-' }}</dd>
-        <dt class="text-slate-500">Venue Normalized</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.venue_normalized) }}</dd>
-        <dt class="text-slate-500">Venue Type</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.venue_type) }}</dd>
-        <dt class="text-slate-500">Publication Type</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.publication_type) }}</dd>
-        <dt class="text-slate-500">Publication Status</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.publication_status) }}</dd>
-        <dt class="text-slate-500">Rank Value</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.rank_value || paper.venue_rank) }}</dd>
-        <dt class="text-slate-500">Rank Source</dt>
-        <dd class="break-all text-slate-800">{{ displayValue(paper.rank_source || paper.venue_rank_source) }}</dd>
-        <dt class="text-slate-500">Rank Note</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.rank_note || paper.venue_rank_note) }}</dd>
-        <dt class="text-slate-500">Citations</dt>
-        <dd class="text-slate-800">{{ paper.citation_count ?? 0 }}</dd>
-        <dt class="text-slate-500">Final Score</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.final_score) }}</dd>
-        <dt class="text-slate-500">Relevance</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.relevance_score) }}</dd>
-        <dt class="text-slate-500">Authority</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.authority_score) }}</dd>
-        <dt class="text-slate-500">Frontier</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.frontier_score) }}</dd>
-        <dt class="text-slate-500">Accessibility</dt>
-        <dd class="text-slate-800">{{ displayValue(paper.accessibility_score) }}</dd>
-        <dt class="text-slate-500">Status</dt>
-        <dd class="text-slate-800">{{ paper.status }}</dd>
-        <dt class="text-slate-500">PDF URL</dt>
-        <dd class="break-all text-slate-800">{{ paper.pdf_url || '-' }}</dd>
-        <dt class="text-slate-500">Local PDF</dt>
-        <dd class="break-all text-slate-800">{{ paper.local_pdf_path || '-' }}</dd>
-      </dl>
+      <section class="p-4">
+        <h3 class="section-title">Metadata</h3>
+        <dl class="detail-grid">
+          <dt>Year</dt>
+          <dd>{{ paper.year || '-' }}</dd>
+          <dt>Venue</dt>
+          <dd>{{ paper.venue || '-' }}</dd>
+          <dt>Venue Normalized</dt>
+          <dd>{{ displayValue(paper.venue_normalized) }}</dd>
+          <dt>DOI</dt>
+          <dd class="break-all">{{ paper.doi || '-' }}</dd>
+          <dt>Citations</dt>
+          <dd>{{ paper.citation_count ?? 0 }}</dd>
+          <dt>Status</dt>
+          <dd>{{ paper.status }}</dd>
+          <dt>PDF URL</dt>
+          <dd class="break-all">{{ paper.pdf_url || '-' }}</dd>
+          <dt>Local PDF</dt>
+          <dd class="break-all">{{ paper.local_pdf_path || '-' }}</dd>
+        </dl>
 
-      <div class="mt-4">
-        <h3 class="mb-1 text-xs font-medium uppercase tracking-normal text-slate-500">Abstract</h3>
-        <p class="max-h-36 overflow-auto whitespace-pre-wrap text-sm leading-6 text-slate-700">
-          {{ paper.abstract || 'No abstract.' }}
+        <div class="mt-3">
+          <h4 class="mb-1 text-xs font-medium uppercase tracking-normal text-slate-500">Abstract</h4>
+          <p class="max-h-32 overflow-auto whitespace-pre-wrap text-sm leading-6 text-slate-700">
+            {{ paper.abstract || 'No abstract.' }}
+          </p>
+        </div>
+      </section>
+
+      <section class="p-4">
+        <h3 class="section-title">Rank & Scores</h3>
+        <dl class="detail-grid">
+          <dt>Rank Source</dt>
+          <dd class="break-all">{{ displayValue(paper.rank_source || paper.venue_rank_source) }}</dd>
+          <dt>Rank Value</dt>
+          <dd>{{ displayValue(paper.rank_value || paper.venue_rank) }}</dd>
+          <dt>Publication Status</dt>
+          <dd>{{ displayValue(paper.publication_status) }}</dd>
+          <dt>Venue Type</dt>
+          <dd>{{ displayValue(paper.venue_type) }}</dd>
+          <dt>Final Score</dt>
+          <dd>{{ displayValue(paper.final_score) }}</dd>
+          <dt>Relevance</dt>
+          <dd>{{ displayValue(paper.relevance_score) }}</dd>
+          <dt>Authority</dt>
+          <dd>{{ displayValue(paper.authority_score) }}</dd>
+          <dt>Frontier</dt>
+          <dd>{{ displayValue(paper.frontier_score) }}</dd>
+          <dt>Accessibility</dt>
+          <dd>{{ displayValue(paper.accessibility_score) }}</dd>
+        </dl>
+        <details class="mt-3 rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
+          <summary class="cursor-pointer font-medium text-slate-600">Rank note</summary>
+          <p class="mt-2 leading-5">{{ displayValue(paper.rank_note || paper.venue_rank_note) }}</p>
+        </details>
+      </section>
+
+      <section class="p-4">
+        <h3 class="section-title">Actions</h3>
+        <label class="mb-3 block">
+          <span class="mb-1 block text-xs font-medium text-slate-500">Extraction Mode</span>
+          <select v-model="extractionMode" class="input h-9">
+            <option value="openai">openai</option>
+            <option value="mock">mock</option>
+          </select>
+        </label>
+
+        <div class="space-y-3">
+          <div class="action-group">
+            <h4>Primary Workflow</h4>
+            <button class="button-primary w-full" type="button" :disabled="!!loadingAction" @click="processSelectedPaper">
+              {{ loadingAction === 'process' ? 'Processing...' : 'Process Paper' }}
+            </button>
+          </div>
+
+          <div class="action-group">
+            <h4>Manual Steps</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="resolveSelectedPdf">
+                {{ loadingAction === 'resolve' ? 'Resolving...' : 'Resolve PDF' }}
+              </button>
+              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="downloadSelectedPdf">
+                {{ loadingAction === 'download' ? 'Downloading...' : 'Download PDF' }}
+              </button>
+              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="parseSelectedPdf">
+                {{ loadingAction === 'parse' ? 'Parsing...' : 'Parse PDF' }}
+              </button>
+              <button class="button-primary" type="button" :disabled="!!loadingAction" @click="extractSelectedPaper">
+                {{ loadingAction === 'extract' ? 'Extracting...' : 'Run Extraction' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="action-group">
+            <h4>Review & Export</h4>
+            <div class="grid grid-cols-2 gap-2">
+              <button class="button-secondary col-span-2" type="button" :disabled="!!loadingAction" @click="loadLatestExtraction">
+                {{ loadingAction === 'latest' ? 'Loading...' : 'Load Latest Extraction' }}
+              </button>
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="previewSelectedMarkdown">
+                {{ loadingAction === 'preview-markdown' ? 'Loading...' : 'Preview Markdown' }}
+              </button>
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedMarkdown">
+                {{ loadingAction === 'export-markdown' ? 'Exporting...' : 'Export Markdown' }}
+              </button>
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedBibtex">
+                {{ loadingAction === 'export-bibtex' ? 'Exporting...' : 'Export BibTeX' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <p v-if="errorMessage" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+          {{ errorMessage }}
         </p>
-      </div>
+      </section>
 
-      <div class="mt-4 grid grid-cols-2 gap-2">
-        <button class="button-primary col-span-2" type="button" :disabled="!!loadingAction" @click="processSelectedPaper">
-          {{ loadingAction === 'process' ? 'Processing...' : 'Process Paper' }}
-        </button>
-        <button class="button-primary" type="button" :disabled="!!loadingAction" @click="resolveSelectedPdf">
-          {{ loadingAction === 'resolve' ? 'Resolving...' : 'Resolve PDF' }}
-        </button>
-        <button class="button-primary" type="button" :disabled="!!loadingAction" @click="downloadSelectedPdf">
-          {{ loadingAction === 'download' ? 'Downloading...' : 'Download PDF' }}
-        </button>
-        <button class="button-primary" type="button" :disabled="!!loadingAction" @click="parseSelectedPdf">
-          {{ loadingAction === 'parse' ? 'Parsing...' : 'Parse PDF' }}
-        </button>
-        <button
-          class="button-primary"
-          type="button"
-          :disabled="!!loadingAction"
-          @click="extractSelectedPaper"
-        >
-          {{ loadingAction === 'extract' ? 'Extracting...' : 'Mock Extract' }}
-        </button>
-        <button class="button-secondary col-span-2" type="button" :disabled="!!loadingAction" @click="loadLatestExtraction">
-          {{ loadingAction === 'latest' ? 'Loading...' : 'Load Latest Extraction' }}
-        </button>
-        <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedMarkdown">
-          {{ loadingAction === 'export-markdown' ? 'Exporting...' : 'Export Markdown' }}
-        </button>
-        <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedBibtex">
-          {{ loadingAction === 'export-bibtex' ? 'Exporting...' : 'Export BibTeX' }}
-        </button>
-      </div>
-
-      <p v-if="errorMessage" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
-        {{ errorMessage }}
-      </p>
-
-      <div v-if="processResult" class="mt-4">
-        <h3 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Process Result</h3>
+      <section v-if="processResult" class="p-4">
+        <h3 class="section-title">Process Result</h3>
         <div class="space-y-2">
           <div
             v-for="step in processResult.steps"
@@ -273,12 +350,107 @@ function displayValue(value: string | number | null | undefined) {
             <p class="leading-5">{{ step.message }}</p>
           </div>
         </div>
-      </div>
+      </section>
 
-      <div v-if="latestExtraction" class="mt-4">
-        <h3 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Latest Extraction</h3>
-        <pre class="max-h-72 overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700">{{ extractionPreview(latestExtraction) }}</pre>
-      </div>
+      <section class="p-4">
+        <h3 class="section-title">LLM Structured Summary</h3>
+        <p v-if="!extractionData" class="text-sm text-slate-500">
+          No extraction loaded yet. Click Load Latest Extraction or Mock Extract.
+        </p>
+        <div v-else class="space-y-3">
+          <div class="summary-block">
+            <h4>Research Background</h4>
+            <p>{{ formatSummaryValue(summaryValue('research_background')) }}</p>
+          </div>
+          <div class="summary-block">
+            <h4>Research Problem</h4>
+            <p>{{ formatSummaryValue(summaryValue('research_problem')) }}</p>
+          </div>
+          <div class="summary-block">
+            <h4>Methodology</h4>
+            <p>{{ formatSummaryValue(summaryValue('methodology')) }}</p>
+          </div>
+          <div class="summary-block">
+            <h4>Main Contributions</h4>
+            <pre>{{ formatSummaryValue(summaryValue('main_contributions')) }}</pre>
+          </div>
+          <div class="summary-block">
+            <h4>Experiments / Evaluation</h4>
+            <p>{{ formatSummaryValue(summaryValue('experiments_or_evaluation')) }}</p>
+          </div>
+          <div class="summary-block">
+            <h4>Main Conclusions</h4>
+            <p>{{ formatSummaryValue(summaryValue('main_conclusions')) }}</p>
+          </div>
+          <div class="summary-block">
+            <h4>Limitations</h4>
+            <pre>{{ formatSummaryValue(summaryValue('limitations')) }}</pre>
+          </div>
+          <div class="summary-block">
+            <h4>Keywords</h4>
+            <pre>{{ formatSummaryValue(summaryValue('keywords')) }}</pre>
+          </div>
+          <div class="summary-block">
+            <h4>Relevance to User Topic</h4>
+            <p>{{ formatSummaryValue(summaryValue('relevance_to_user_topic')) }}</p>
+          </div>
+          <div class="summary-block">
+            <h4>Possible Follow-up Questions</h4>
+            <pre>{{ formatSummaryValue(summaryValue('possible_followup_questions')) }}</pre>
+          </div>
+          <div class="summary-block">
+            <h4>Evidence Chunk Indices</h4>
+            <pre>{{ formatSummaryValue(summaryValue('evidence_chunk_indices')) }}</pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="p-4">
+        <h3 class="section-title">PDF Preview</h3>
+        <div class="flex flex-wrap gap-2">
+          <button
+            v-if="paper.local_pdf_path"
+            class="button-secondary"
+            type="button"
+            @click="showPdfPreview = !showPdfPreview"
+          >
+            {{ showPdfPreview ? 'Hide PDF Preview' : 'Preview PDF' }}
+          </button>
+          <a
+            v-if="paper.pdf_url"
+            class="button-secondary"
+            :href="paper.pdf_url"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open PDF URL
+          </a>
+        </div>
+
+        <p v-if="paper.local_pdf_path && !pdfPreviewSrc" class="mt-2 text-xs text-slate-500">
+          Local PDF path: {{ paper.local_pdf_path }}. Preview needs a file under storage/pdfs.
+        </p>
+        <iframe
+          v-if="showPdfPreview && pdfPreviewSrc"
+          class="mt-3 h-[520px] w-full rounded-md border border-slate-200"
+          :src="pdfPreviewSrc"
+          title="PDF preview"
+        ></iframe>
+        <p v-if="!paper.local_pdf_path && !paper.pdf_url" class="text-sm text-slate-500">
+          No PDF available yet.
+        </p>
+      </section>
+
+      <section class="p-4">
+        <h3 class="section-title">Markdown Preview</h3>
+        <p v-if="!markdownPreview" class="text-sm text-slate-500">
+          Click Preview Markdown to load the exported note without downloading it.
+        </p>
+        <pre
+          v-else
+          class="max-h-96 overflow-auto rounded-md border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-700"
+        >{{ markdownPreview }}</pre>
+      </section>
     </div>
   </section>
 </template>

@@ -1,9 +1,16 @@
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from app.api.papers import router as papers_router
 from app.api.search import router as search_router
 from app.db.session import init_db
+
+PROJECT_ROOT = Path(__file__).resolve().parents[2]
+PDF_STORAGE_DIR = PROJECT_ROOT / "storage" / "pdfs"
+PDF_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="LitFlow Backend")
 
@@ -26,6 +33,7 @@ def on_startup() -> None:
 
 app.include_router(papers_router)
 app.include_router(search_router)
+app.mount("/static/pdfs", StaticFiles(directory=PDF_STORAGE_DIR), name="pdfs")
 
 
 @app.get("/")

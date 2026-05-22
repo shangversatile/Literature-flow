@@ -146,6 +146,15 @@ curl -X POST "http://127.0.0.1:8000/papers/1/resolve-pdf"
 curl -X POST "http://127.0.0.1:8000/papers/1/download-pdf"
 ```
 
+Downloaded PDFs are saved with readable filenames when enough metadata is
+available:
+
+```text
+{year}-{short-title}-{venue}-{rank}-id{paper_id}.pdf
+```
+
+Older files such as `storage/pdfs/1.pdf` remain valid and are not migrated.
+
 Enriched paper display API:
 
 These endpoints read saved database papers and compute display-only score and
@@ -330,3 +339,13 @@ curl -X POST "http://127.0.0.1:8000/search/all/save" ^
 The dashboard supports Search Only, Select Results, Save Selected, Save All
 Results, paper filtering, PDF resolve/download/parse, mock extraction, one-click
 Process Paper, loading the latest extraction, and mock RAG ask.
+
+The paper detail Actions area includes an Extraction Mode selector with `openai`
+and `mock`. `Run Extraction` and `Process Paper` use the currently selected mode.
+
+The paper detail panel also provides a structured reading workspace:
+
+- latest extraction displayed as structured summary sections
+- PDF preview for downloaded files under `/static/pdfs/{file}`
+- Markdown preview without downloading
+- Markdown and BibTeX export buttons
