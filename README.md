@@ -78,6 +78,25 @@ All sources search API:
 curl "http://127.0.0.1:8000/search/all?query=flashattention&limit=10"
 ```
 
+Unified search results include scoring v2 fields:
+
+- `relevance_score`
+- `authority_score`
+- `frontier_score`
+- `accessibility_score`
+- `final_score`
+
+`final_score` is computed as:
+
+```text
+0.40 * relevance_score
++ 0.30 * authority_score
++ 0.20 * frontier_score
++ 0.10 * accessibility_score
+```
+
+`quality_score` is still returned for compatibility and is set to `final_score`.
+
 Search all sources and save results:
 
 ```bash

@@ -6,28 +6,12 @@ import string
 from app.schemas.search import PaperSearchResult
 from app.services.search.arxiv import search_arxiv
 from app.services.search.openalex import search_openalex
+from app.services.search.scoring import score_paper_result
 from app.services.search.semantic_scholar import search_semantic_scholar
 
 
 logger = logging.getLogger(__name__)
 
-TOP_VENUES = {
-    "NEURIPS",
-    "ICML",
-    "ICLR",
-    "ACL",
-    "EMNLP",
-    "CVPR",
-    "KDD",
-    "OSDI",
-    "SOSP",
-    "ASPLOS",
-    "ISCA",
-    "MLSYS",
-    "EUROSYS",
-    "VLDB",
-    "SIGMOD",
-}
 SOURCE_URL_PRIORITY = {
     "semantic_scholar": 0,
     "openalex": 1,
@@ -145,46 +129,6 @@ def merge_results(current: PaperSearchResult, incoming: PaperSearchResult) -> Pa
     return current
 
 
-def query_terms(query: str) -> list[str]:
-    normalized = normalize_title(query)
-    return [term for term in normalized.split() if term]
-
-
-def text_has_query(text: str | None, terms: list[str]) -> bool:
-    if not text or not terms:
-        return False
-    normalized = normalize_title(text)
-    return any(term in normalized for term in terms)
-
-
-def score_relevance(result: PaperSearchResult, query: str) -> float:
-    terms = query_terms(query)
-    score = 0.0
-    if text_has_query(result.title, terms):
-        score += 0.6
-    if text_has_query(result.abstract, terms):
-        score += 0.3
-    if text_has_query(result.venue, terms):
-        score += 0.1
-    return min(score, 1.0)
-
-
-def score_quality(result: PaperSearchResult) -> float:
-    score = 0.0
-    venue = (result.venue or "").upper()
-    if any(top_venue in venue for top_venue in TOP_VENUES):
-        score += 0.4
-    if result.citation_count > 1000:
-        score += 0.3
-    elif result.citation_count > 100:
-        score += 0.2
-    if result.year and result.year >= 2023:
-        score += 0.2
-    if result.open_access_pdf_url:
-        score += 0.1
-    return min(score, 1.0)
-
-
 async def run_source(name: str, query: str, limit: int) -> list[PaperSearchResult]:
     search_functions = {
         "semantic_scholar": search_semantic_scholar,
@@ -222,13 +166,13 @@ async def search_all_sources(query: str, limit: int = 10) -> list[PaperSearchRes
 
     merged_results = list(merged_by_key.values())
     for result in merged_results:
-        result.relevance_score = score_relevance(result, query)
-        result.quality_score = score_quality(result)
+        score_paper_result(result, query)
 
     merged_results.sort(
         key=lambda result: (
-            result.quality_score or 0.0,
+            result.final_score or 0.0,
             result.relevance_score or 0.0,
+            result.authority_score or 0.0,
             result.citation_count or 0,
             result.year or 0,
         ),

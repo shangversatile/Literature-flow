@@ -16,6 +16,10 @@ class PaperSearchResult(SQLModel):
     open_access_pdf_url: str | None = None
     source: str = "semantic_scholar"
     relevance_score: float | None = None
+    authority_score: float | None = None
+    frontier_score: float | None = None
+    accessibility_score: float | None = None
+    final_score: float | None = None
     quality_score: float | None = None
     sources: list[str] = Field(default_factory=list)
 
