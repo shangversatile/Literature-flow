@@ -8,6 +8,7 @@ from app.services.search.arxiv import search_arxiv
 from app.services.search.openalex import search_openalex
 from app.services.search.scoring import score_paper_result
 from app.services.search.semantic_scholar import search_semantic_scholar
+from app.services.search.venue_classifier import normalize_venue_name
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +94,9 @@ def merge_year(current: int | None, incoming: int | None) -> int | None:
 def merge_venue(current: str | None, incoming: str | None) -> str | None:
     if not current:
         return incoming
-    if current == "arXiv" and incoming and incoming != "arXiv":
+    current_normalized = normalize_venue_name(current)
+    incoming_normalized = normalize_venue_name(incoming)
+    if current_normalized == "arXiv" and incoming_normalized and incoming_normalized != "arXiv":
         return incoming
     return current
 

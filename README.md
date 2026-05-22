@@ -85,6 +85,10 @@ Unified search results include scoring v2 fields:
 - `frontier_score`
 - `accessibility_score`
 - `final_score`
+- `venue_normalized`
+- `publication_type`
+- `publication_status`
+- `venue_rank`
 
 `final_score` is computed as:
 
@@ -96,6 +100,11 @@ Unified search results include scoring v2 fields:
 ```
 
 `quality_score` is still returned for compatibility and is set to `final_score`.
+
+Venue rank uses `LitFlow-default-venue-rank-v1`, a configurable LitFlow default
+ranking for common AI, systems, data, and related venues. It is not a universal
+official ranking. If a result only points to arXiv or another preprint venue
+without a concrete conference or journal, it is marked as `Unpublished`.
 
 Search all sources and save results:
 

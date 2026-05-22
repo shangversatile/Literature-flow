@@ -15,6 +15,12 @@ class PaperSearchResult(SQLModel):
     external_ids: dict = Field(default_factory=dict)
     open_access_pdf_url: str | None = None
     source: str = "semantic_scholar"
+    venue_normalized: str | None = None
+    publication_type: str | None = None
+    publication_status: str | None = None
+    venue_rank: str | None = None
+    venue_rank_source: str | None = None
+    venue_rank_note: str | None = None
     relevance_score: float | None = None
     authority_score: float | None = None
     frontier_score: float | None = None

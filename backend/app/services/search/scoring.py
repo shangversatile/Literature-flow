@@ -3,55 +3,10 @@ import string
 from datetime import datetime
 
 from app.schemas.search import PaperSearchResult
-
-
-TOP_VENUES = {
-    "NeurIPS",
-    "ICML",
-    "ICLR",
-    "ACL",
-    "EMNLP",
-    "CVPR",
-    "KDD",
-    "OSDI",
-    "SOSP",
-    "ASPLOS",
-    "ISCA",
-    "MLSys",
-    "EuroSys",
-    "VLDB",
-    "SIGMOD",
-}
-
-VENUE_ALIASES = {
-    "advances in neural information processing systems": "NeurIPS",
-    "neurips": "NeurIPS",
-    "international conference on machine learning": "ICML",
-    "icml": "ICML",
-    "international conference on learning representations": "ICLR",
-    "iclr": "ICLR",
-    "association for computational linguistics": "ACL",
-    "acl": "ACL",
-    "emnlp": "EMNLP",
-    "conference on empirical methods in natural language processing": "EMNLP",
-    "computer vision and pattern recognition": "CVPR",
-    "cvpr": "CVPR",
-    "knowledge discovery and data mining": "KDD",
-    "kdd": "KDD",
-    "operating systems design and implementation": "OSDI",
-    "osdi": "OSDI",
-    "symposium on operating systems principles": "SOSP",
-    "sosp": "SOSP",
-    "architectural support for programming languages and operating systems": "ASPLOS",
-    "asplos": "ASPLOS",
-    "international symposium on computer architecture": "ISCA",
-    "isca": "ISCA",
-    "mlsys": "MLSys",
-    "european conference on computer systems": "EuroSys",
-    "eurosys": "EuroSys",
-    "vldb": "VLDB",
-    "sigmod": "SIGMOD",
-}
+from app.services.search.venue_classifier import (
+    classify_publication_venue,
+    normalize_venue_name,
+)
 
 
 def clamp_score(score: float) -> float:
@@ -69,14 +24,6 @@ def normalize_text(text: str | None) -> str:
     translator = str.maketrans("", "", string.punctuation)
     value = text.lower().translate(translator)
     return re.sub(r"\s+", " ", value).strip()
-
-
-def normalize_venue(venue: str | None) -> str | None:
-    if not venue:
-        return None
-
-    normalized = normalize_text(venue)
-    return VENUE_ALIASES.get(normalized, venue)
 
 
 def query_tokens(query: str) -> list[str]:
@@ -123,17 +70,25 @@ def has_external_id(external_ids: dict | None, names: set[str]) -> bool:
 
 def compute_authority_score(
     venue: str | None,
+    venue_rank: str | None,
     citation_count: int | None,
     year: int | None,
     sources: list[str],
     external_ids: dict | None,
 ) -> float:
     score = 0.0
-    normalized_venue = normalize_venue(venue)
     citations = citation_count or 0
 
-    if normalized_venue in TOP_VENUES:
+    if venue_rank == "S":
         score += 0.35
+    elif venue_rank == "A":
+        score += 0.28
+    elif venue_rank == "B":
+        score += 0.18
+    elif venue_rank == "Journal":
+        score += 0.15
+    elif venue_rank == "Unpublished":
+        score += 0.03
 
     if citations >= 1000:
         score += 0.25
@@ -227,7 +182,19 @@ def compute_accessibility_score(
 
 
 def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResult:
-    normalized_venue = normalize_venue(result.venue)
+    classification = classify_publication_venue(
+        result.venue,
+        external_ids=result.external_ids,
+        sources=result.sources,
+    )
+    result.venue_normalized = classification["venue_normalized"]
+    result.publication_type = classification["publication_type"]
+    result.publication_status = classification["publication_status"]
+    result.venue_rank = classification["venue_rank"]
+    result.venue_rank_source = classification["venue_rank_source"]
+    result.venue_rank_note = classification["venue_rank_note"]
+
+    normalized_venue = normalize_venue_name(result.venue)
     if normalized_venue:
         result.venue = normalized_venue
 
@@ -239,6 +206,7 @@ def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResu
     )
     result.authority_score = compute_authority_score(
         venue=result.venue,
+        venue_rank=result.venue_rank,
         citation_count=result.citation_count,
         year=result.year,
         sources=result.sources,

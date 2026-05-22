@@ -12,6 +12,19 @@ export interface Paper {
   status: string
   created_at: string
   updated_at: string
+  relevance_score?: number | null
+  authority_score?: number | null
+  frontier_score?: number | null
+  accessibility_score?: number | null
+  final_score?: number | null
+  quality_score?: number | null
+  sources?: string[]
+  venue_normalized?: string | null
+  publication_type?: string | null
+  publication_status?: string | null
+  venue_rank?: string | null
+  venue_rank_source?: string | null
+  venue_rank_note?: string | null
 }
 
 export interface Extraction {

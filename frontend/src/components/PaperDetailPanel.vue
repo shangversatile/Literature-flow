@@ -119,6 +119,12 @@ function stepClass(status: string) {
   if (status === 'failed') return 'border-red-200 bg-red-50 text-red-800'
   return 'border-slate-200 bg-slate-50 text-slate-700'
 }
+
+function displayValue(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === '') return '-'
+  if (typeof value === 'number') return value.toFixed(4)
+  return value
+}
 </script>
 
 <template>
@@ -135,8 +141,28 @@ function stepClass(status: string) {
         <dd class="text-slate-800">{{ paper.year || '-' }}</dd>
         <dt class="text-slate-500">Venue</dt>
         <dd class="text-slate-800">{{ paper.venue || '-' }}</dd>
+        <dt class="text-slate-500">Venue Normalized</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.venue_normalized) }}</dd>
+        <dt class="text-slate-500">Publication Type</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.publication_type) }}</dd>
+        <dt class="text-slate-500">Publication Status</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.publication_status) }}</dd>
+        <dt class="text-slate-500">Venue Rank</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.venue_rank) }}</dd>
+        <dt class="text-slate-500">Rank Source</dt>
+        <dd class="break-all text-slate-800">{{ displayValue(paper.venue_rank_source) }}</dd>
         <dt class="text-slate-500">Citations</dt>
         <dd class="text-slate-800">{{ paper.citation_count ?? 0 }}</dd>
+        <dt class="text-slate-500">Final Score</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.final_score) }}</dd>
+        <dt class="text-slate-500">Relevance</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.relevance_score) }}</dd>
+        <dt class="text-slate-500">Authority</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.authority_score) }}</dd>
+        <dt class="text-slate-500">Frontier</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.frontier_score) }}</dd>
+        <dt class="text-slate-500">Accessibility</dt>
+        <dd class="text-slate-800">{{ displayValue(paper.accessibility_score) }}</dd>
         <dt class="text-slate-500">Status</dt>
         <dd class="text-slate-800">{{ paper.status }}</dd>
         <dt class="text-slate-500">PDF URL</dt>

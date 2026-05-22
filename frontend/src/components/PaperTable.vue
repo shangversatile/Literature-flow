@@ -11,9 +11,9 @@ const emit = defineEmits<{
   select: [paper: Paper]
 }>()
 
-type SortKey = 'year' | 'citation_count'
+type SortKey = 'year' | 'citation_count' | 'final_score'
 
-const sortKey = ref<SortKey>('citation_count')
+const sortKey = ref<SortKey>('final_score')
 const sortDirection = ref<'asc' | 'desc'>('desc')
 
 const sortedPapers = computed(() => {
@@ -36,7 +36,11 @@ function setSort(key: SortKey) {
 
 function sortMark(key: SortKey) {
   if (sortKey.value !== key) return ''
-  return sortDirection.value === 'asc' ? '↑' : '↓'
+  return sortDirection.value === 'asc' ? '^' : 'v'
+}
+
+function displayScore(score: number | null | undefined) {
+  return typeof score === 'number' ? score.toFixed(3) : '-'
 }
 </script>
 
@@ -45,19 +49,26 @@ function sortMark(key: SortKey) {
     <table class="w-full table-fixed border-collapse text-left text-sm">
       <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-normal text-slate-500">
         <tr>
-          <th class="w-[44%] px-3 py-2 font-medium">Title</th>
-          <th class="w-[12%] px-3 py-2 font-medium">
+          <th class="w-[32%] px-3 py-2 font-medium">Title</th>
+          <th class="w-[9%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('year')">
               Year {{ sortMark('year') }}
             </button>
           </th>
-          <th class="w-[18%] px-3 py-2 font-medium">Venue</th>
-          <th class="w-[12%] px-3 py-2 font-medium">
+          <th class="w-[14%] px-3 py-2 font-medium">Venue</th>
+          <th class="w-[9%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('citation_count')">
               Cites {{ sortMark('citation_count') }}
             </button>
           </th>
-          <th class="w-[14%] px-3 py-2 font-medium">Status</th>
+          <th class="w-[10%] px-3 py-2 font-medium">
+            <button class="table-sort-button" type="button" @click="setSort('final_score')">
+              Score {{ sortMark('final_score') }}
+            </button>
+          </th>
+          <th class="w-[9%] px-3 py-2 font-medium">Rank</th>
+          <th class="w-[11%] px-3 py-2 font-medium">Pub</th>
+          <th class="w-[6%] px-3 py-2 font-medium">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -75,6 +86,9 @@ function sortMark(key: SortKey) {
           <td class="px-3 py-2 align-top text-slate-600">{{ paper.year || '-' }}</td>
           <td class="truncate px-3 py-2 align-top text-slate-600">{{ paper.venue || '-' }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ paper.citation_count ?? 0 }}</td>
+          <td class="px-3 py-2 align-top text-slate-600">{{ displayScore(paper.final_score) }}</td>
+          <td class="px-3 py-2 align-top text-slate-600">{{ paper.venue_rank || '-' }}</td>
+          <td class="px-3 py-2 align-top text-slate-600">{{ paper.publication_status || '-' }}</td>
           <td class="px-3 py-2 align-top">
             <span class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">
               {{ paper.status }}
