@@ -3,3 +3,4 @@ uvicorn[standard]
 sqlmodel
 python-dotenv
 httpx
+PyMuPDF

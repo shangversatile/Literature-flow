@@ -97,6 +97,18 @@ curl -X POST "http://127.0.0.1:8000/papers/1/resolve-pdf"
 curl -X POST "http://127.0.0.1:8000/papers/1/download-pdf"
 ```
 
+PDF text parsing and RAG-ready chunks:
+
+Run `download-pdf` first so `Paper.local_pdf_path` points to a local PDF file,
+then parse the PDF and inspect the saved text/chunks.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/download-pdf"
+curl -X POST "http://127.0.0.1:8000/papers/1/parse-pdf"
+curl "http://127.0.0.1:8000/papers/1/pdf-text"
+curl "http://127.0.0.1:8000/papers/1/chunks"
+```
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`
