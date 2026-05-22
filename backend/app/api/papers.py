@@ -18,6 +18,7 @@ from app.schemas.paper import PaperCreate, PaperEnrichedRead, PaperRead, PaperUp
 from app.schemas.paper_asset import ExtractAssetsResponse, PaperAssetRead
 from app.schemas.paper_text import PaperChunkRead, PaperTextRead, ParsePdfResponse
 from app.schemas.rag import AskPaperRequest, AskPaperResponse
+from app.schemas.workspace import WorkspaceInfoResponse, WorkspaceSaveResponse
 from app.schemas.workflow import (
     ProcessPaperRequest,
     ProcessPaperResponse,
@@ -46,6 +47,7 @@ from app.services.extraction.text_chunker import chunk_text_pages
 from app.services.export.bibtex_exporter import export_paper_to_bibtex
 from app.services.export.filename_utils import build_export_filename
 from app.services.export.markdown_exporter import export_paper_to_markdown
+from app.services.export.workspace_exporter import save_paper_workspace, workspace_info
 from app.services.paper_enrichment import enrich_paper_for_display
 
 
@@ -70,6 +72,14 @@ def latest_extraction_for_paper(
         .where(Extraction.paper_id == paper_id)
         .order_by(Extraction.created_at.desc())
     ).first()
+
+
+def assets_for_paper(paper_id: int, session: Session) -> list[PaperAsset]:
+    return session.exec(
+        select(PaperAsset)
+        .where(PaperAsset.paper_id == paper_id)
+        .order_by(PaperAsset.asset_type, PaperAsset.page_number, PaperAsset.asset_index)
+    ).all()
 
 
 @router.post("", response_model=PaperRead)
@@ -141,11 +151,7 @@ def export_markdown(
     authors = get_paper_author_names(session, paper_id)
     enriched = enrich_paper_for_display(paper, authors=authors)
     latest_extraction = latest_extraction_for_paper(paper_id, session)
-    assets = session.exec(
-        select(PaperAsset)
-        .where(PaperAsset.paper_id == paper_id)
-        .order_by(PaperAsset.asset_type, PaperAsset.page_number, PaperAsset.asset_index)
-    ).all()
+    assets = assets_for_paper(paper_id, session)
     content = export_paper_to_markdown(paper, latest_extraction, enriched, assets, authors)
     filename = build_export_filename(paper, enriched, "md")
     return PlainTextResponse(
@@ -153,6 +159,45 @@ def export_markdown(
         media_type="text/markdown; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/{paper_id}/save-workspace", response_model=WorkspaceSaveResponse)
+def save_paper_to_workspace(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> WorkspaceSaveResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    authors = get_paper_author_names(session, paper_id)
+    enriched = enrich_paper_for_display(paper, authors=authors)
+    latest_extraction = latest_extraction_for_paper(paper_id, session)
+    markdown_text = export_paper_to_markdown(
+        paper,
+        latest_extraction,
+        enriched,
+        assets_for_paper(paper_id, session),
+        authors,
+    )
+    bibtex_text = export_paper_to_bibtex(paper, authors)
+    return WorkspaceSaveResponse.model_validate(
+        save_paper_workspace(paper, markdown_text, bibtex_text, enriched)
+    )
+
+
+@router.get("/{paper_id}/workspace", response_model=WorkspaceInfoResponse)
+def read_paper_workspace(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> WorkspaceInfoResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    authors = get_paper_author_names(session, paper_id)
+    enriched = enrich_paper_for_display(paper, authors=authors)
+    return WorkspaceInfoResponse.model_validate(workspace_info(paper, enriched))
 
 
 @router.get("/{paper_id}/export/bibtex")

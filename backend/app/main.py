@@ -11,8 +11,10 @@ from app.db.session import init_db
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PDF_STORAGE_DIR = PROJECT_ROOT / "storage" / "pdfs"
 ASSET_STORAGE_DIR = PROJECT_ROOT / "storage" / "assets"
+LIBRARY_STORAGE_DIR = PROJECT_ROOT / "storage" / "library"
 PDF_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 ASSET_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+LIBRARY_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="LitFlow Backend")
 
@@ -38,6 +40,7 @@ app.include_router(papers_router)
 app.include_router(search_router)
 app.mount("/static/pdfs", StaticFiles(directory=PDF_STORAGE_DIR), name="pdfs")
 app.mount("/static/assets", StaticFiles(directory=ASSET_STORAGE_DIR), name="assets")
+app.mount("/static/library", StaticFiles(directory=LIBRARY_STORAGE_DIR), name="library")
 
 
 @app.get("/")

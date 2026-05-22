@@ -84,6 +84,22 @@ export interface ExtractAssetsResponse {
   status: string
 }
 
+export interface WorkspaceResponse {
+  paper_id: number
+  workspace_path: string
+  pdf_path: string | null
+  markdown_path: string
+  bibtex_path: string
+  metadata_path: string
+  assets_path: string | null
+  exists?: boolean
+  pdf_exists?: boolean
+  markdown_exists?: boolean
+  bibtex_exists?: boolean
+  metadata_exists?: boolean
+  assets_exists?: boolean
+}
+
 export type PaperUpdatePayload = Partial<
   Pick<
     Paper,

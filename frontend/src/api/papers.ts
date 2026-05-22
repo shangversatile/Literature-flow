@@ -9,6 +9,7 @@ import type {
   PaperUpdatePayload,
   ProcessPaperRequest,
   ProcessPaperResponse,
+  WorkspaceResponse,
 } from '../types'
 
 const API_BASE = 'http://127.0.0.1:8000'
@@ -137,6 +138,14 @@ export function processPaper(
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+export function saveWorkspace(id: number): Promise<WorkspaceResponse> {
+  return request<WorkspaceResponse>(`/papers/${id}/save-workspace`, { method: 'POST' })
+}
+
+export function fetchWorkspace(id: number): Promise<WorkspaceResponse> {
+  return request<WorkspaceResponse>(`/papers/${id}/workspace`)
 }
 
 export function exportMarkdown(id: number): Promise<{ blob: Blob; filename: string }> {

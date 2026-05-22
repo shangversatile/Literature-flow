@@ -7,3 +7,5 @@ storage/pdfs/*
 dist/
 storage/assets/*
 !storage/assets/.gitkeep
+storage/library/*
+!storage/library/.gitkeep

@@ -12,8 +12,16 @@ import {
   previewMarkdown,
   processPaper,
   resolvePdf,
+  saveWorkspace,
 } from '../api/papers'
-import type { ExtractAssetsResponse, Extraction, Paper, PaperAsset, ProcessPaperResponse } from '../types'
+import type {
+  ExtractAssetsResponse,
+  Extraction,
+  Paper,
+  PaperAsset,
+  ProcessPaperResponse,
+  WorkspaceResponse,
+} from '../types'
 
 const API_BASE = 'http://127.0.0.1:8000'
 
@@ -30,6 +38,7 @@ const errorMessage = ref('')
 const latestExtraction = ref<Extraction | null>(null)
 const processResult = ref<ProcessPaperResponse | null>(null)
 const assetResult = ref<ExtractAssetsResponse | null>(null)
+const workspaceResult = ref<WorkspaceResponse | null>(null)
 const assets = ref<PaperAsset[]>([])
 const showPdfPreview = ref(false)
 const markdownPreview = ref('')
@@ -71,6 +80,7 @@ watch(
     latestExtraction.value = null
     processResult.value = null
     assetResult.value = null
+    workspaceResult.value = null
     assets.value = []
     loadingAction.value = null
     showPdfPreview.value = false
@@ -97,6 +107,9 @@ async function runAction(label: string, action: () => Promise<unknown>, shouldRe
     }
     if (label === 'extract-assets') {
       assetResult.value = result as ExtractAssetsResponse
+    }
+    if (label === 'save-workspace') {
+      workspaceResult.value = result as WorkspaceResponse
     }
     if (label === 'preview-markdown') {
       markdownPreview.value = result as string
@@ -228,6 +241,12 @@ function exportSelectedBibtex() {
     },
     false,
   )
+}
+
+function saveSelectedWorkspace() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction('save-workspace', () => saveWorkspace(id), false)
 }
 
 function assetImageSrc(asset: PaperAsset) {
@@ -381,6 +400,9 @@ function formatSummaryValue(value: unknown) {
               </button>
               <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedBibtex">
                 {{ loadingAction === 'export-bibtex' ? 'Exporting...' : 'Export BibTeX' }}
+              </button>
+              <button class="button-secondary col-span-2" type="button" :disabled="!!loadingAction" @click="saveSelectedWorkspace">
+                {{ loadingAction === 'save-workspace' ? 'Saving...' : 'Save to Library' }}
               </button>
             </div>
           </div>
@@ -576,6 +598,24 @@ function formatSummaryValue(value: unknown) {
             </div>
           </div>
         </div>
+      </section>
+
+      <section v-if="workspaceResult" class="p-4">
+        <h3 class="section-title">Library Workspace</h3>
+        <dl class="detail-grid">
+          <dt>Workspace</dt>
+          <dd class="break-all">{{ workspaceResult.workspace_path }}</dd>
+          <dt>Markdown</dt>
+          <dd class="break-all">{{ workspaceResult.markdown_path }}</dd>
+          <dt>BibTeX</dt>
+          <dd class="break-all">{{ workspaceResult.bibtex_path }}</dd>
+          <dt>PDF</dt>
+          <dd class="break-all">{{ workspaceResult.pdf_path || '-' }}</dd>
+          <dt>Metadata</dt>
+          <dd class="break-all">{{ workspaceResult.metadata_path }}</dd>
+          <dt>Assets</dt>
+          <dd class="break-all">{{ workspaceResult.assets_path || '-' }}</dd>
+        </dl>
       </section>
 
       <section class="p-4">

@@ -195,6 +195,33 @@ shows the Markdown text inside the page without downloading a file. `Export
 Markdown` downloads the `.md` file and uses the filename from the backend
 `Content-Disposition` header.
 
+There are two export modes:
+
+- `Export Markdown` / `Export BibTeX`: downloads files through the browser to
+  the browser's default download directory.
+- `Save to Library`: writes a local literature workspace inside the project
+  under `storage/library/{paper_id}-{year}-{short-title}/`.
+
+The local workspace contains:
+
+```text
+storage/library/{paper_id}-{year}-{short-title}/
+├── paper.pdf
+├── note.md
+├── citation.bib
+├── metadata.json
+└── assets/
+```
+
+Workspace files are generated artifacts and are ignored by git.
+
+Workspace API:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/save-workspace"
+curl "http://127.0.0.1:8000/papers/1/workspace"
+```
+
 Exported filenames use readable metadata:
 
 ```text
