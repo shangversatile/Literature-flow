@@ -433,6 +433,12 @@ The dashboard supports Search Only, Select Results, Save Selected, Save All
 Results, paper filtering, PDF resolve/download/parse, mock extraction, one-click
 Process Paper, loading the latest extraction, and mock RAG ask.
 
+The frontend also includes a Literature Quality Board for reading triage. Each
+paper is assigned a client-side reading priority: `Must Read`, `High Priority`,
+`Frontier Watch`, `Skim`, or `Archive`. These labels combine rank, relevance,
+authority, frontier signal, publication status, year, and final score. They are
+an assistant for organizing reading work, not an absolute academic evaluation.
+
 The paper detail Actions area includes an Extraction Mode selector with `openai`
 and `mock`. `Run Extraction` and `Process Paper` use the currently selected mode.
 
