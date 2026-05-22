@@ -7,9 +7,11 @@ from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
 from app.db.session import get_session
+from app.models.extraction import Extraction
 from app.models.paper import Paper
 from app.models.paper_chunk import PaperChunk
 from app.models.paper_text import PaperText
+from app.schemas.extraction import ExtractRequest, ExtractResponse, ExtractionRead
 from app.schemas.paper import PaperCreate, PaperRead, PaperUpdate
 from app.schemas.paper_text import PaperChunkRead, PaperTextRead, ParsePdfResponse
 from app.services.download.downloader import PdfDownloadError, download_pdf
@@ -17,6 +19,11 @@ from app.services.download.resolver import resolve_pdf_url
 from app.services.download.unpaywall import (
     UnpaywallEmailMissingError,
     UnpaywallLookupError,
+)
+from app.services.extraction.llm_extractor import (
+    PROMPT_VERSION,
+    extract_with_openai,
+    mock_extract,
 )
 from app.services.extraction.pdf_parser import extract_text_from_pdf
 from app.services.extraction.text_chunker import chunk_text_pages
@@ -226,6 +233,100 @@ def read_paper_chunks(
         .where(PaperChunk.paper_id == paper_id)
         .order_by(PaperChunk.chunk_index)
     ).all()
+
+
+@router.post("/{paper_id}/extract", response_model=ExtractResponse)
+async def extract_paper_information(
+    paper_id: int,
+    request: ExtractRequest,
+    session: Session = Depends(get_session),
+) -> ExtractResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    chunks = session.exec(
+        select(PaperChunk)
+        .where(PaperChunk.paper_id == paper_id)
+        .order_by(PaperChunk.chunk_index)
+    ).all()
+    if not chunks:
+        raise HTTPException(
+            status_code=400,
+            detail="No paper chunks found. Please call parse-pdf first.",
+        )
+
+    selected_chunks = chunks[: request.max_chunks]
+    raw_llm_output = None
+
+    if request.mode == "mock":
+        data = mock_extract(paper, selected_chunks, request.user_topic)
+        model_name = "mock"
+    else:
+        try:
+            data, raw_llm_output, model_name = await extract_with_openai(
+                paper,
+                selected_chunks,
+                request.user_topic,
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=400, detail=str(exc)) from exc
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502,
+                detail=f"OpenAI extraction failed: {exc}",
+            ) from exc
+
+    extraction = Extraction(
+        paper_id=paper_id,
+        model_name=model_name,
+        prompt_version=PROMPT_VERSION,
+        extracted_json=data.model_dump_json(),
+        raw_llm_output=raw_llm_output,
+    )
+    session.add(extraction)
+
+    paper.status = "LLM_EXTRACTED"
+    paper.updated_at = datetime.utcnow()
+    session.add(paper)
+
+    session.commit()
+    session.refresh(extraction)
+
+    return ExtractResponse(
+        paper_id=paper_id,
+        extraction_id=extraction.id,
+        model_name=model_name,
+        prompt_version=extraction.prompt_version,
+        data=data,
+    )
+
+
+@router.get("/{paper_id}/extractions", response_model=list[ExtractionRead])
+def read_paper_extractions(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> list[Extraction]:
+    return session.exec(
+        select(Extraction)
+        .where(Extraction.paper_id == paper_id)
+        .order_by(Extraction.created_at.desc())
+    ).all()
+
+
+@router.get("/{paper_id}/latest-extraction", response_model=ExtractionRead)
+def read_latest_paper_extraction(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> Extraction:
+    extraction = session.exec(
+        select(Extraction)
+        .where(Extraction.paper_id == paper_id)
+        .order_by(Extraction.created_at.desc())
+    ).first()
+    if extraction is None:
+        raise HTTPException(status_code=404, detail="No extraction found")
+    return extraction
 
 
 @router.patch("/{paper_id}", response_model=PaperRead)

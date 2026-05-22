@@ -3,6 +3,7 @@ from pathlib import Path
 
 from sqlmodel import Session, SQLModel, create_engine
 
+from app.models.extraction import Extraction
 from app.models.paper import Paper
 from app.models.paper_chunk import PaperChunk
 from app.models.paper_text import PaperText

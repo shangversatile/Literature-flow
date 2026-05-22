@@ -4,3 +4,4 @@ sqlmodel
 python-dotenv
 httpx
 PyMuPDF
+openai

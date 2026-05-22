@@ -109,6 +109,34 @@ curl "http://127.0.0.1:8000/papers/1/pdf-text"
 curl "http://127.0.0.1:8000/papers/1/chunks"
 ```
 
+LLM structured extraction:
+
+Run `download-pdf` and `parse-pdf` first so the paper has saved chunks. Use
+`mock` mode to test the database flow without calling an external API.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/extract" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"mode\":\"mock\",\"user_topic\":\"LLM inference systems\",\"max_chunks\":8}"
+
+curl "http://127.0.0.1:8000/papers/1/extractions"
+curl "http://127.0.0.1:8000/papers/1/latest-extraction"
+```
+
+For OpenAI extraction, set `OPENAI_API_KEY` in `.env`. You can optionally set
+`LLM_MODEL`; it defaults to `gpt-4.1-mini`.
+
+```bash
+OPENAI_API_KEY=your_openai_api_key
+LLM_MODEL=gpt-4.1-mini
+```
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/extract" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"mode\":\"openai\",\"user_topic\":\"LLM inference systems\",\"max_chunks\":8}"
+```
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`
