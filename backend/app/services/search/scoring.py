@@ -70,7 +70,7 @@ def has_external_id(external_ids: dict | None, names: set[str]) -> bool:
 
 def compute_authority_score(
     venue: str | None,
-    venue_rank: str | None,
+    rank_value: str | None,
     citation_count: int | None,
     year: int | None,
     sources: list[str],
@@ -79,15 +79,23 @@ def compute_authority_score(
     score = 0.0
     citations = citation_count or 0
 
-    if venue_rank == "S":
+    if rank_value == "A*":
         score += 0.35
-    elif venue_rank == "A":
+    elif rank_value == "A":
         score += 0.28
-    elif venue_rank == "B":
+    elif rank_value == "B":
         score += 0.18
-    elif venue_rank == "Journal":
-        score += 0.15
-    elif venue_rank == "Unpublished":
+    elif rank_value == "C":
+        score += 0.10
+    elif rank_value == "Q1":
+        score += 0.25
+    elif rank_value == "Q2":
+        score += 0.18
+    elif rank_value == "Q3":
+        score += 0.10
+    elif rank_value == "Q4":
+        score += 0.05
+    elif rank_value in {"Unpublished", "Unranked"}:
         score += 0.03
 
     if citations >= 1000:
@@ -188,8 +196,12 @@ def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResu
         sources=result.sources,
     )
     result.venue_normalized = classification["venue_normalized"]
+    result.venue_type = classification["venue_type"]
     result.publication_type = classification["publication_type"]
     result.publication_status = classification["publication_status"]
+    result.rank_source = classification["rank_source"]
+    result.rank_value = classification["rank_value"]
+    result.rank_note = classification["rank_note"]
     result.venue_rank = classification["venue_rank"]
     result.venue_rank_source = classification["venue_rank_source"]
     result.venue_rank_note = classification["venue_rank_note"]
@@ -206,7 +218,7 @@ def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResu
     )
     result.authority_score = compute_authority_score(
         venue=result.venue,
-        venue_rank=result.venue_rank,
+        rank_value=result.rank_value,
         citation_count=result.citation_count,
         year=result.year,
         sources=result.sources,

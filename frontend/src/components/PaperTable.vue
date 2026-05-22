@@ -42,6 +42,10 @@ function sortMark(key: SortKey) {
 function displayScore(score: number | null | undefined) {
   return typeof score === 'number' ? score.toFixed(3) : '-'
 }
+
+function displayRank(paper: Paper) {
+  return paper.rank_value || paper.venue_rank || '-'
+}
 </script>
 
 <template>
@@ -87,7 +91,7 @@ function displayScore(score: number | null | undefined) {
           <td class="truncate px-3 py-2 align-top text-slate-600">{{ paper.venue || '-' }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ paper.citation_count ?? 0 }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ displayScore(paper.final_score) }}</td>
-          <td class="px-3 py-2 align-top text-slate-600">{{ paper.venue_rank || '-' }}</td>
+          <td class="px-3 py-2 align-top text-slate-600">{{ displayRank(paper) }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ paper.publication_status || '-' }}</td>
           <td class="px-3 py-2 align-top">
             <span class="rounded border border-slate-200 bg-slate-50 px-1.5 py-0.5 text-[11px] text-slate-600">

@@ -65,8 +65,12 @@ def enrich_paper_for_display(
     data.update(
         {
             "venue_normalized": search_result.venue_normalized,
+            "venue_type": search_result.venue_type,
             "publication_type": search_result.publication_type,
             "publication_status": search_result.publication_status,
+            "rank_source": search_result.rank_source,
+            "rank_value": search_result.rank_value,
+            "rank_note": search_result.rank_note,
             "venue_rank": search_result.venue_rank,
             "venue_rank_source": search_result.venue_rank_source,
             "venue_rank_note": search_result.venue_rank_note,

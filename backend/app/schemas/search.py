@@ -16,8 +16,12 @@ class PaperSearchResult(SQLModel):
     open_access_pdf_url: str | None = None
     source: str = "semantic_scholar"
     venue_normalized: str | None = None
+    venue_type: str | None = None
     publication_type: str | None = None
     publication_status: str | None = None
+    rank_source: str | None = None
+    rank_value: str | None = None
+    rank_note: str | None = None
     venue_rank: str | None = None
     venue_rank_source: str | None = None
     venue_rank_note: str | None = None

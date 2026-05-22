@@ -28,8 +28,12 @@ class PaperRead(PaperBase):
 
 class PaperEnrichedRead(PaperRead):
     venue_normalized: str | None = None
+    venue_type: str | None = None
     publication_type: str | None = None
     publication_status: str | None = None
+    rank_source: str | None = None
+    rank_value: str | None = None
+    rank_note: str | None = None
     venue_rank: str | None = None
     venue_rank_source: str | None = None
     venue_rank_note: str | None = None

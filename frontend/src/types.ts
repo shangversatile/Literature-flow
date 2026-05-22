@@ -20,8 +20,12 @@ export interface Paper {
   quality_score?: number | null
   sources?: string[]
   venue_normalized?: string | null
+  venue_type?: string | null
   publication_type?: string | null
   publication_status?: string | null
+  rank_source?: string | null
+  rank_value?: string | null
+  rank_note?: string | null
   venue_rank?: string | null
   venue_rank_source?: string | null
   venue_rank_note?: string | null
@@ -132,8 +136,12 @@ export interface PaperSearchResult {
   final_score: number | null
   quality_score: number | null
   venue_normalized: string | null
+  venue_type: string | null
   publication_type: string | null
   publication_status: string | null
+  rank_source: string | null
+  rank_value: string | null
+  rank_note: string | null
   venue_rank: string | null
   venue_rank_source: string | null
   venue_rank_note: string | null

@@ -86,8 +86,12 @@ Unified search results include scoring v2 fields:
 - `accessibility_score`
 - `final_score`
 - `venue_normalized`
+- `venue_type`
 - `publication_type`
 - `publication_status`
+- `rank_source`
+- `rank_value`
+- `rank_note`
 - `venue_rank`
 
 `final_score` is computed as:
@@ -100,11 +104,14 @@ Unified search results include scoring v2 fields:
 ```
 
 `quality_score` is still returned for compatibility and is set to `final_score`.
+`venue_rank` is also kept for compatibility and is set to `rank_value`.
 
-Venue rank uses `LitFlow-default-venue-rank-v1`, a configurable LitFlow default
-ranking for common AI, systems, data, and related venues. It is not a universal
-official ranking. If a result only points to arXiv or another preprint venue
-without a concrete conference or journal, it is marked as `Unpublished`.
+Conference rank uses CORE-style `A*`, `A`, `B`, `C`, `Unranked`, and `Unknown`
+categories. The current built-in mapping is incomplete and configurable; it is
+not a universal official ranking. Journal quartile support is
+SCImago/JCR-ready, but requires imported data, so journals are currently marked
+`Unknown` unless local quartile data is added later. Preprint-only papers are
+marked `Unpublished`. The system no longer uses `S` or `Journal` as rank values.
 
 Search all sources and save results:
 
@@ -135,10 +142,10 @@ curl "http://127.0.0.1:8000/papers/enriched"
 curl "http://127.0.0.1:8000/papers/1/enriched"
 ```
 
-The enriched responses include `final_score`, `venue_normalized`,
-`publication_type`, `publication_status`, and `venue_rank`. Venue rank uses
-`LitFlow-default-venue-rank-v1`, a configurable LitFlow default ranking suited
-for Dashboard display.
+The enriched responses include `final_score`, `venue_normalized`, `venue_type`,
+`publication_type`, `publication_status`, `rank_source`, `rank_value`,
+`rank_note`, and compatibility fields such as `venue_rank`. These fields are
+computed at read time for Dashboard display.
 
 PDF text parsing and RAG-ready chunks:
 

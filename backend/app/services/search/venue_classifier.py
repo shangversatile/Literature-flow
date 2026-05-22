@@ -2,10 +2,21 @@ import re
 import string
 
 
-RANK_SOURCE = "LitFlow-default-venue-rank-v1"
-RANK_NOTE = "Default configurable LitFlow ranking; not a universal official ranking."
+CORE_NOTE = (
+    "Built-in CORE-style conference mapping is incomplete and configurable; "
+    "full CORE data can be imported later."
+)
+CORE_UNRANKED_NOTE = (
+    "Conference not found in the current built-in CORE-style mapping; "
+    "full CORE list can be imported later."
+)
+JOURNAL_NOTE = (
+    "Journal quartile requires imported SCImago or JCR data; not available "
+    "in current local mapping."
+)
+PREPRINT_NOTE = "Preprint-only record; no peer-reviewed venue detected."
 
-S_RANK_VENUES = {
+A_STAR_CONFERENCES = {
     "NeurIPS",
     "ICML",
     "ICLR",
@@ -22,7 +33,7 @@ S_RANK_VENUES = {
     "FOCS",
     "STOC",
 }
-A_RANK_VENUES = {
+A_CONFERENCES = {
     "AAAI",
     "IJCAI",
     "EMNLP",
@@ -41,7 +52,7 @@ A_RANK_VENUES = {
     "CoRL",
     "RSS",
 }
-B_RANK_VENUES = {
+B_CONFERENCES = {
     "EACL",
     "COLING",
     "WACV",
@@ -57,7 +68,7 @@ B_RANK_VENUES = {
     "SC",
     "PACT",
 }
-CONFERENCE_VENUES = S_RANK_VENUES | A_RANK_VENUES | B_RANK_VENUES
+CONFERENCE_VENUES = A_STAR_CONFERENCES | A_CONFERENCES | B_CONFERENCES
 
 VENUE_ALIASES = {
     "advances in neural information processing systems": "NeurIPS",
@@ -78,17 +89,15 @@ VENUE_ALIASES = {
     "eccv": "ECCV",
     "kdd": "KDD",
     "sigkdd": "KDD",
-    "knowledge discovery and data mining": "KDD",
     "the web conference": "WWW",
     "www": "WWW",
+    "mlsys": "MLSys",
     "osdi": "OSDI",
     "sosp": "SOSP",
     "asplos": "ASPLOS",
     "isca": "ISCA",
-    "mlsys": "MLSys",
-    "eurosys": "EuroSys",
-    "vldb": "VLDB",
     "sigmod": "SIGMOD",
+    "vldb": "VLDB",
     "usenix atc": "USENIX ATC",
     "nsdi": "NSDI",
     "pldi": "PLDI",
@@ -96,6 +105,8 @@ VENUE_ALIASES = {
     "colt": "COLT",
     "aistats": "AISTATS",
     "uai": "UAI",
+    "eurosys": "EuroSys",
+    "arxiv": "arXiv",
     "focs": "FOCS",
     "stoc": "STOC",
     "eacl": "EACL",
@@ -114,7 +125,6 @@ VENUE_ALIASES = {
     "pact": "PACT",
     "corl": "CoRL",
     "rss": "RSS",
-    "arxiv": "arXiv",
 }
 
 
@@ -138,28 +148,64 @@ def normalize_venue_name(venue: str | None) -> str | None:
     return VENUE_ALIASES.get(key, stripped)
 
 
-def _rank_for_conference(venue_normalized: str) -> str:
-    if venue_normalized in S_RANK_VENUES:
-        return "S"
-    if venue_normalized in A_RANK_VENUES:
+def _classification(
+    venue_normalized: str | None,
+    venue_type: str,
+    publication_status: str,
+    rank_source: str | None,
+    rank_value: str,
+    rank_note: str,
+) -> dict:
+    return {
+        "venue_normalized": venue_normalized,
+        "venue_type": venue_type,
+        "publication_type": venue_type,
+        "publication_status": publication_status,
+        "rank_source": rank_source,
+        "rank_value": rank_value,
+        "rank_note": rank_note,
+        "venue_rank": rank_value,
+        "venue_rank_source": rank_source,
+        "venue_rank_note": rank_note,
+    }
+
+
+def _conference_rank(venue_normalized: str) -> str:
+    if venue_normalized in A_STAR_CONFERENCES:
+        return "A*"
+    if venue_normalized in A_CONFERENCES:
         return "A"
-    if venue_normalized in B_RANK_VENUES:
+    if venue_normalized in B_CONFERENCES:
         return "B"
-    return "Unknown"
+    return "Unranked"
 
 
-def _looks_like_journal(venue: str) -> bool:
+def _looks_like_journal(venue: str | None) -> bool:
     value = _normalize_lookup_text(venue)
     journal_terms = [
         "journal",
         "transactions",
-        "proceedings of the",
         "nature",
         "science",
         "jmlr",
-        "pmlr",
+        "proceedings of the national academy of sciences",
+        "pnas",
+        "communications of the acm",
     ]
     return any(term in value for term in journal_terms)
+
+
+def _looks_like_preprint(venue: str | None) -> bool:
+    value = _normalize_lookup_text(venue)
+    return any(
+        term in value
+        for term in ["arxiv", "biorxiv", "medrxiv", "preprint", "openreview"]
+    )
+
+
+def _looks_like_conference(venue: str | None) -> bool:
+    value = _normalize_lookup_text(venue)
+    return any(term in value for term in ["conference", "symposium", "workshop"])
 
 
 def classify_publication_venue(
@@ -171,52 +217,60 @@ def classify_publication_venue(
 
     venue_normalized = normalize_venue_name(venue)
     if not venue_normalized:
-        return {
-            "venue_normalized": None,
-            "publication_type": "unknown",
-            "publication_status": "unknown",
-            "venue_rank": "Unknown",
-            "venue_rank_source": RANK_SOURCE,
-            "venue_rank_note": RANK_NOTE,
-        }
+        return _classification(
+            None,
+            "unknown",
+            "unknown",
+            None,
+            "Unknown",
+            "No venue detected.",
+        )
 
-    venue_text = _normalize_lookup_text(venue_normalized)
-    original_text = _normalize_lookup_text(venue)
-    if venue_normalized == "arXiv" or "arxiv" in original_text or "preprint" in original_text:
-        return {
-            "venue_normalized": "arXiv",
-            "publication_type": "preprint",
-            "publication_status": "unpublished",
-            "venue_rank": "Unpublished",
-            "venue_rank_source": RANK_SOURCE,
-            "venue_rank_note": RANK_NOTE,
-        }
+    if _looks_like_preprint(venue_normalized):
+        return _classification(
+            "arXiv" if _normalize_lookup_text(venue_normalized) == "arxiv" else venue_normalized,
+            "preprint",
+            "unpublished",
+            None,
+            "Unpublished",
+            PREPRINT_NOTE,
+        )
 
     if venue_normalized in CONFERENCE_VENUES:
-        return {
-            "venue_normalized": venue_normalized,
-            "publication_type": "conference",
-            "publication_status": "published",
-            "venue_rank": _rank_for_conference(venue_normalized),
-            "venue_rank_source": RANK_SOURCE,
-            "venue_rank_note": RANK_NOTE,
-        }
+        return _classification(
+            venue_normalized,
+            "conference",
+            "published",
+            "CORE",
+            _conference_rank(venue_normalized),
+            CORE_NOTE,
+        )
 
-    if _looks_like_journal(venue_normalized) or _looks_like_journal(venue_text):
-        return {
-            "venue_normalized": venue_normalized,
-            "publication_type": "journal",
-            "publication_status": "published",
-            "venue_rank": "Journal",
-            "venue_rank_source": RANK_SOURCE,
-            "venue_rank_note": RANK_NOTE,
-        }
+    if _looks_like_journal(venue_normalized):
+        return _classification(
+            venue_normalized,
+            "journal",
+            "published",
+            "SCImago/JCR-ready",
+            "Unknown",
+            JOURNAL_NOTE,
+        )
 
-    return {
-        "venue_normalized": venue_normalized,
-        "publication_type": "unknown",
-        "publication_status": "unknown",
-        "venue_rank": "Unknown",
-        "venue_rank_source": RANK_SOURCE,
-        "venue_rank_note": RANK_NOTE,
-    }
+    if _looks_like_conference(venue_normalized):
+        return _classification(
+            venue_normalized,
+            "conference",
+            "published",
+            "CORE",
+            "Unranked",
+            CORE_UNRANKED_NOTE,
+        )
+
+    return _classification(
+        venue_normalized,
+        "unknown",
+        "unknown",
+        None,
+        "Unknown",
+        "Venue type could not be inferred from the current local mapping.",
+    )

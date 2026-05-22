@@ -213,7 +213,7 @@ async function saveAllResults() {
             <td class="truncate px-2 py-2 align-top text-slate-600">
               {{ paper.venue_normalized || paper.venue || '-' }}
             </td>
-            <td class="px-2 py-2 align-top text-slate-600">{{ displayValue(paper.venue_rank) }}</td>
+            <td class="px-2 py-2 align-top text-slate-600">{{ displayValue(paper.rank_value || paper.venue_rank) }}</td>
             <td class="px-2 py-2 align-top text-slate-600">{{ displayScore(paper.final_score) }}</td>
             <td class="px-2 py-2 align-top text-slate-600">{{ paper.citation_count ?? 0 }}</td>
             <td class="px-2 py-2 align-top text-slate-600">{{ displayValue(paper.publication_status) }}</td>
