@@ -96,6 +96,8 @@ async function ask() {
                 <span>chunk {{ chunk.chunk_index }}</span>
                 <span>score {{ chunk.score.toFixed(2) }}</span>
                 <span>pages {{ chunk.page_start ?? '-' }}-{{ chunk.page_end ?? '-' }}</span>
+                <span>Retrieval Method {{ chunk.retrieval_method || '-' }}</span>
+                <span>Matched Terms {{ chunk.matched_terms?.length ? chunk.matched_terms.join(', ') : '-' }}</span>
               </div>
               <p class="whitespace-pre-wrap leading-5">{{ chunk.text.slice(0, 500) }}</p>
             </article>

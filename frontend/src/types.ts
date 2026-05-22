@@ -49,6 +49,8 @@ export interface EvidenceChunk {
   page_start: number | null
   page_end: number | null
   section_title?: string | null
+  matched_terms?: string[]
+  retrieval_method?: string
 }
 
 export interface AskResponse {
