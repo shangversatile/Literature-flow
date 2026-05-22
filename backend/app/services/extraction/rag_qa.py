@@ -1,4 +1,5 @@
 import json
+import math
 import os
 import re
 import string
@@ -24,18 +25,126 @@ STOP_WORDS = {
     "in",
     "to",
     "and",
+    "or",
     "is",
     "are",
+    "was",
+    "were",
     "what",
     "how",
     "why",
+    "does",
+    "do",
+    "did",
+    "this",
+    "that",
+    "paper",
+    "method",
+    "approach",
 }
 
 
-def _normalize_question(question: str) -> list[str]:
-    text = question.lower()
-    text = text.translate(str.maketrans("", "", string.punctuation))
-    return [word for word in text.split() if word and word not in STOP_WORDS]
+def normalize_text(text: str | None) -> str:
+    if not text:
+        return ""
+
+    value = text.lower()
+    value = value.translate(str.maketrans("", "", string.punctuation))
+    return re.sub(r"\s+", " ", value).strip()
+
+
+def tokenize_query(question: str) -> list[str]:
+    seen: set[str] = set()
+    tokens: list[str] = []
+    for token in normalize_text(question).split():
+        if len(token) < 2 or token in STOP_WORDS or token in seen:
+            continue
+        tokens.append(token)
+        seen.add(token)
+    return tokens
+
+
+def important_phrases(question: str, query_tokens: list[str]) -> list[str]:
+    normalized = normalize_text(question)
+    phrases: list[str] = []
+    if len(normalized.split()) >= 3:
+        phrases.append(normalized)
+
+    for index in range(len(query_tokens) - 1):
+        phrases.append(f"{query_tokens[index]} {query_tokens[index + 1]}")
+    return phrases
+
+
+def count_term(text: str, token: str) -> int:
+    return len(re.findall(rf"\b{re.escape(token)}\b", text))
+
+
+def chunk_tokens(chunk: PaperChunk) -> list[str]:
+    return normalize_text(chunk.text).split()
+
+
+def compute_idf(query_tokens: list[str], chunks: list[PaperChunk]) -> dict[str, float]:
+    total_docs = max(len(chunks), 1)
+    idf: dict[str, float] = {}
+    normalized_chunks = [normalize_text(chunk.text) for chunk in chunks]
+
+    for token in query_tokens:
+        doc_freq = sum(1 for text in normalized_chunks if count_term(text, token) > 0)
+        idf[token] = math.log(1 + (total_docs - doc_freq + 0.5) / (doc_freq + 0.5))
+    return idf
+
+
+def compute_chunk_score(
+    question: str,
+    query_tokens: list[str],
+    chunk: PaperChunk,
+    avg_chunk_len: float,
+    idf: dict[str, float] | None = None,
+) -> float:
+    del question
+
+    text = normalize_text(chunk.text)
+    section = normalize_text(chunk.section_title)
+    terms = text.split()
+    chunk_len = max(len(terms), 1)
+    avg_len = max(avg_chunk_len, 1.0)
+    idf_values = idf or {token: 1.0 for token in query_tokens}
+    score = 0.0
+    k1 = 1.5
+    b = 0.75
+
+    for token in query_tokens:
+        tf = count_term(text, token)
+        if tf <= 0:
+            continue
+
+        denominator = tf + k1 * (1 - b + b * (chunk_len / avg_len))
+        score += idf_values.get(token, 1.0) * ((tf * (k1 + 1)) / denominator)
+
+        if token in text[:500]:
+            score += 0.15
+        if section and token in section:
+            score += 0.25
+
+    for phrase in important_phrases(" ".join(query_tokens), query_tokens):
+        if phrase and phrase in text:
+            score += 0.35
+
+    intro_terms = {"introduction", "background", "motivation", "overview", "problem"}
+    if set(query_tokens) & intro_terms and (chunk.page_start or 999) <= 2:
+        score += 0.20
+
+    return score
+
+
+def matched_terms_for_chunk(query_tokens: list[str], chunk: PaperChunk) -> list[str]:
+    text = normalize_text(chunk.text)
+    section = normalize_text(chunk.section_title)
+    return [
+        token
+        for token in query_tokens
+        if count_term(text, token) > 0 or (section and token in section)
+    ]
 
 
 def retrieve_relevant_chunks(
@@ -43,20 +152,19 @@ def retrieve_relevant_chunks(
     chunks: list[PaperChunk],
     top_k: int = 5,
 ) -> list[dict]:
-    keywords = _normalize_question(question)
-    scored_chunks = []
+    query_tokens = tokenize_query(question)
+    if not chunks:
+        return []
+
+    tokenized_chunks = [chunk_tokens(chunk) for chunk in chunks]
+    avg_chunk_len = sum(len(tokens) for tokens in tokenized_chunks) / len(tokenized_chunks)
+    idf = compute_idf(query_tokens, chunks)
+    scored_chunks: list[dict] = []
 
     for chunk in chunks:
         text = chunk.text or ""
-        lower_text = text.lower()
-        early_text = lower_text[:500]
-        raw_score = 0.0
-
-        for keyword in keywords:
-            matches = len(re.findall(rf"\b{re.escape(keyword)}\b", lower_text))
-            raw_score += matches
-            if keyword in early_text:
-                raw_score += 0.5
+        raw_score = compute_chunk_score(question, query_tokens, chunk, avg_chunk_len, idf)
+        matched_terms = matched_terms_for_chunk(query_tokens, chunk)
 
         scored_chunks.append(
             {
@@ -66,6 +174,8 @@ def retrieve_relevant_chunks(
                 "page_start": chunk.page_start,
                 "page_end": chunk.page_end,
                 "section_title": chunk.section_title,
+                "matched_terms": matched_terms,
+                "retrieval_method": "bm25_like_v2",
             }
         )
 
@@ -90,6 +200,8 @@ def build_rag_prompt(
     chunk_text = "\n\n".join(
         (
             f"CHUNK {chunk['chunk_index']}:\n"
+            f"retrieval_score: {chunk.get('score')}\n"
+            f"matched_terms: {chunk.get('matched_terms', [])}\n"
             f"page_start: {chunk.get('page_start')}\n"
             f"page_end: {chunk.get('page_end')}\n"
             f"section_title: {chunk.get('section_title')}\n"
@@ -101,7 +213,7 @@ def build_rag_prompt(
     return f"""
 You are answering a question about one academic paper.
 Return only valid JSON. Do not wrap the JSON in markdown.
-Answer only from the evidence chunks below.
+Answer only from the evidence chunks below. Cite relevant chunk_index values in the answer when possible.
 If the evidence chunks do not contain enough evidence, answer exactly:
 "The provided chunks do not contain enough evidence to answer this question."
 Do not invent facts, methods, results, datasets, or conclusions that are not present in the chunks.
@@ -133,11 +245,17 @@ def mock_answer_question(
     evidence_chunks: list[dict],
 ) -> dict:
     indices = [chunk["chunk_index"] for chunk in evidence_chunks]
+    methods = sorted({chunk.get("retrieval_method", "unknown") for chunk in evidence_chunks})
+    matched_terms = {
+        chunk["chunk_index"]: chunk.get("matched_terms", []) for chunk in evidence_chunks
+    }
     return {
         "answer": (
             "Mock RAG answer: no external API was called. "
-            f"For paper '{paper.title}', the keyword retriever selected chunks "
-            f"{indices} for the question: {question}"
+            f"For paper '{paper.title}', retrieval_method={methods}. "
+            f"Top evidence chunk indices: {indices}. "
+            f"Matched terms by chunk: {matched_terms}. "
+            f"Question: {question}"
         ),
         "evidence_chunk_indices": indices,
     }
