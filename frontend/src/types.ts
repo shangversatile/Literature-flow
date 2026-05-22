@@ -69,3 +69,25 @@ export interface AskPayload {
   mode: 'mock' | 'openai'
   top_k: number
 }
+
+export interface ProcessPaperRequest {
+  resolve_pdf: boolean
+  download_pdf: boolean
+  parse_pdf: boolean
+  extract: boolean
+  extract_mode: 'mock' | 'openai'
+  user_topic?: string | null
+  max_chunks: number
+}
+
+export interface ProcessStepResult {
+  name: string
+  status: 'success' | 'skipped' | 'failed'
+  message: string
+}
+
+export interface ProcessPaperResponse {
+  paper_id: number
+  steps: ProcessStepResult[]
+  final_status: string
+}

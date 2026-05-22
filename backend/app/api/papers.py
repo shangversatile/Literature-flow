@@ -15,6 +15,11 @@ from app.schemas.extraction import ExtractRequest, ExtractResponse, ExtractionRe
 from app.schemas.paper import PaperCreate, PaperRead, PaperUpdate
 from app.schemas.paper_text import PaperChunkRead, PaperTextRead, ParsePdfResponse
 from app.schemas.rag import AskPaperRequest, AskPaperResponse
+from app.schemas.workflow import (
+    ProcessPaperRequest,
+    ProcessPaperResponse,
+    ProcessStepResult,
+)
 from app.services.download.downloader import PdfDownloadError, download_pdf
 from app.services.download.resolver import resolve_pdf_url
 from app.services.download.unpaywall import (
@@ -79,6 +84,232 @@ def read_paper(
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
     return paper
+
+
+def step_result(name: str, status: str, message: str) -> ProcessStepResult:
+    return ProcessStepResult(name=name, status=status, message=message)
+
+
+def skip_step(name: str, message: str) -> ProcessStepResult:
+    return step_result(name, "skipped", message)
+
+
+def fail_step(name: str, message: str) -> ProcessStepResult:
+    return step_result(name, "failed", message)
+
+
+def success_step(name: str, message: str) -> ProcessStepResult:
+    return step_result(name, "success", message)
+
+
+def save_parsed_pdf(
+    paper: Paper,
+    paper_id: int,
+    session: Session,
+) -> tuple[int, int, int, int]:
+    if not paper.local_pdf_path:
+        raise ValueError("No local PDF found. Please download the PDF first.")
+
+    try:
+        parsed = extract_text_from_pdf(paper.local_pdf_path)
+    except FileNotFoundError as exc:
+        raise ValueError(str(exc)) from exc
+
+    full_text = parsed["full_text"].strip()
+    if not full_text:
+        raise ValueError(
+            parsed.get("error") or "No extractable text found. The PDF may be scanned."
+        )
+
+    old_texts = session.exec(
+        select(PaperText).where(PaperText.paper_id == paper_id)
+    ).all()
+    for old_text in old_texts:
+        session.delete(old_text)
+
+    old_chunks = session.exec(
+        select(PaperChunk).where(PaperChunk.paper_id == paper_id)
+    ).all()
+    for old_chunk in old_chunks:
+        session.delete(old_chunk)
+
+    paper_text = PaperText(
+        paper_id=paper_id,
+        full_text=full_text,
+        page_count=parsed["page_count"],
+        extracted_pages=parsed["extracted_pages"],
+        char_count=len(full_text),
+    )
+    session.add(paper_text)
+
+    chunk_data = chunk_text_pages(parsed["pages"])
+    for chunk in chunk_data:
+        session.add(PaperChunk(paper_id=paper_id, **chunk))
+
+    paper.status = "TEXT_EXTRACTED"
+    paper.updated_at = datetime.utcnow()
+    session.add(paper)
+
+    return parsed["page_count"], parsed["extracted_pages"], len(full_text), len(chunk_data)
+
+
+@router.post(
+    "/{paper_id}/process",
+    response_model=ProcessPaperResponse,
+    summary="Process Paper",
+)
+async def process_paper(
+    paper_id: int,
+    request: ProcessPaperRequest,
+    session: Session = Depends(get_session),
+) -> ProcessPaperResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    if request.extract_mode not in {"mock", "openai"}:
+        raise HTTPException(
+            status_code=400,
+            detail="extract_mode must be 'mock' or 'openai'.",
+        )
+    if not 1 <= request.max_chunks <= 20:
+        raise HTTPException(status_code=400, detail="max_chunks must be between 1 and 20.")
+
+    steps: list[ProcessStepResult] = []
+    resolve_failed = False
+    download_failed = False
+    parse_failed = False
+
+    if not request.resolve_pdf:
+        steps.append(skip_step("resolve_pdf", "resolve_pdf disabled by request."))
+    elif paper.pdf_url:
+        steps.append(success_step("resolve_pdf", "PDF URL already exists."))
+    else:
+        try:
+            pdf_url = await resolve_pdf_url(paper)
+            if not pdf_url:
+                raise ValueError("No legal open-access PDF found.")
+            paper.pdf_url = pdf_url
+            paper.status = "PDF_RESOLVED"
+            paper.updated_at = datetime.utcnow()
+            session.add(paper)
+            session.commit()
+            session.refresh(paper)
+            steps.append(success_step("resolve_pdf", "PDF URL resolved."))
+        except Exception as exc:
+            session.rollback()
+            resolve_failed = True
+            steps.append(fail_step("resolve_pdf", str(exc)))
+
+    if not request.download_pdf:
+        steps.append(skip_step("download_pdf", "download_pdf disabled by request."))
+    elif resolve_failed:
+        download_failed = True
+        steps.append(skip_step("download_pdf", "Skipped because resolve_pdf failed."))
+    elif paper.local_pdf_path:
+        steps.append(success_step("download_pdf", "PDF already downloaded."))
+    else:
+        try:
+            pdf_url = paper.pdf_url or await resolve_pdf_url(paper)
+            if not pdf_url:
+                raise ValueError("No legal open-access PDF found.")
+            local_pdf_path = await download_pdf(pdf_url, paper_id)
+            paper.pdf_url = pdf_url
+            paper.local_pdf_path = local_pdf_path
+            paper.status = "PDF_DOWNLOADED"
+            paper.updated_at = datetime.utcnow()
+            session.add(paper)
+            session.commit()
+            session.refresh(paper)
+            steps.append(success_step("download_pdf", "PDF downloaded."))
+        except Exception as exc:
+            session.rollback()
+            download_failed = True
+            steps.append(fail_step("download_pdf", str(exc)))
+
+    if not request.parse_pdf:
+        steps.append(skip_step("parse_pdf", "parse_pdf disabled by request."))
+    elif download_failed:
+        parse_failed = True
+        steps.append(skip_step("parse_pdf", "Skipped because download_pdf failed."))
+    elif not paper.local_pdf_path:
+        parse_failed = True
+        steps.append(fail_step("parse_pdf", "No local PDF found. Please download the PDF first."))
+    else:
+        try:
+            page_count, extracted_pages, char_count, chunk_count = save_parsed_pdf(
+                paper,
+                paper_id,
+                session,
+            )
+            session.commit()
+            session.refresh(paper)
+            steps.append(
+                success_step(
+                    "parse_pdf",
+                    (
+                        "PDF parsed. "
+                        f"pages={page_count}, extracted_pages={extracted_pages}, "
+                        f"chars={char_count}, "
+                        f"chunks={chunk_count}."
+                    ),
+                )
+            )
+        except Exception as exc:
+            session.rollback()
+            parse_failed = True
+            steps.append(fail_step("parse_pdf", str(exc)))
+
+    if not request.extract:
+        steps.append(skip_step("extract", "extract disabled by request."))
+    elif parse_failed:
+        steps.append(skip_step("extract", "Skipped because parse_pdf failed."))
+    else:
+        chunks = session.exec(
+            select(PaperChunk)
+            .where(PaperChunk.paper_id == paper_id)
+            .order_by(PaperChunk.chunk_index)
+        ).all()
+        if not chunks:
+            steps.append(fail_step("extract", "No paper chunks found. Please call parse-pdf first."))
+        else:
+            selected_chunks = chunks[: request.max_chunks]
+            raw_llm_output = None
+            try:
+                if request.extract_mode == "mock":
+                    data = mock_extract(paper, selected_chunks, request.user_topic)
+                    model_name = "mock"
+                else:
+                    data, raw_llm_output, model_name = await extract_with_openai(
+                        paper,
+                        selected_chunks,
+                        request.user_topic,
+                    )
+
+                extraction = Extraction(
+                    paper_id=paper_id,
+                    model_name=model_name,
+                    prompt_version=PROMPT_VERSION,
+                    extracted_json=data.model_dump_json(),
+                    raw_llm_output=raw_llm_output,
+                )
+                session.add(extraction)
+                paper.status = "LLM_EXTRACTED"
+                paper.updated_at = datetime.utcnow()
+                session.add(paper)
+                session.commit()
+                session.refresh(paper)
+                steps.append(success_step("extract", f"Extraction saved with {model_name}."))
+            except Exception as exc:
+                session.rollback()
+                steps.append(fail_step("extract", str(exc)))
+
+    final_status = "failed" if any(step.status == "failed" for step in steps) else "success"
+    return ProcessPaperResponse(
+        paper_id=paper_id,
+        steps=steps,
+        final_status=final_status,
+    )
 
 
 @router.post("/{paper_id}/resolve-pdf", response_model=PaperRead)
@@ -162,53 +393,21 @@ def parse_paper_pdf(
         )
 
     try:
-        parsed = extract_text_from_pdf(paper.local_pdf_path)
-    except FileNotFoundError as exc:
-        raise HTTPException(status_code=400, detail=str(exc)) from exc
-
-    full_text = parsed["full_text"].strip()
-    if not full_text:
-        raise HTTPException(
-            status_code=400,
-            detail=parsed.get("error") or "No extractable text found. The PDF may be scanned.",
+        page_count, extracted_pages, char_count, chunk_count = save_parsed_pdf(
+            paper,
+            paper_id,
+            session,
         )
-
-    old_texts = session.exec(
-        select(PaperText).where(PaperText.paper_id == paper_id)
-    ).all()
-    for old_text in old_texts:
-        session.delete(old_text)
-
-    old_chunks = session.exec(
-        select(PaperChunk).where(PaperChunk.paper_id == paper_id)
-    ).all()
-    for old_chunk in old_chunks:
-        session.delete(old_chunk)
-
-    paper_text = PaperText(
-        paper_id=paper_id,
-        full_text=full_text,
-        page_count=parsed["page_count"],
-        extracted_pages=parsed["extracted_pages"],
-        char_count=len(full_text),
-    )
-    session.add(paper_text)
-
-    chunk_data = chunk_text_pages(parsed["pages"])
-    for chunk in chunk_data:
-        session.add(PaperChunk(paper_id=paper_id, **chunk))
-
-    paper.status = "TEXT_EXTRACTED"
-    paper.updated_at = datetime.utcnow()
-    session.add(paper)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
     session.commit()
     return ParsePdfResponse(
         paper_id=paper_id,
-        page_count=parsed["page_count"],
-        extracted_pages=parsed["extracted_pages"],
-        char_count=len(full_text),
-        chunk_count=len(chunk_data),
+        page_count=page_count,
+        extracted_pages=extracted_pages,
+        char_count=char_count,
+        chunk_count=chunk_count,
         status=paper.status,
     )
 

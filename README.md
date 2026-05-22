@@ -159,6 +159,24 @@ curl -X POST "http://127.0.0.1:8000/papers/1/ask" ^
   -d "{\"question\":\"What is the main systems optimization in this paper?\",\"mode\":\"openai\",\"top_k\":5}"
 ```
 
+One-click paper processing workflow:
+
+The workflow endpoint can resolve, download, parse, and extract a paper in one
+request. Mock extraction is useful when OpenAI quota is unavailable.
+
+Endpoint:
+
+- `POST /papers/{paper_id}/process`
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/process" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"resolve_pdf\":true,\"download_pdf\":true,\"parse_pdf\":true,\"extract\":true,\"extract_mode\":\"mock\",\"user_topic\":\"LLM inference systems\",\"max_chunks\":8}"
+```
+
+If you want to use OpenAI extraction, set `extract_mode` to `openai`. If OpenAI
+quota or API access is unavailable, keep `extract_mode` as `mock`.
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`
@@ -206,4 +224,5 @@ curl -X POST "http://127.0.0.1:8000/search/all/save" ^
 ```
 
 The dashboard supports paper filtering, PDF resolve/download/parse, mock
-extraction, loading the latest extraction, and mock RAG ask.
+extraction, one-click Process Paper, loading the latest extraction, and mock RAG
+ask.

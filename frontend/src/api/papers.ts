@@ -5,6 +5,8 @@ import type {
   Extraction,
   Paper,
   PaperUpdatePayload,
+  ProcessPaperRequest,
+  ProcessPaperResponse,
 } from '../types'
 
 const API_BASE = 'http://127.0.0.1:8000'
@@ -85,6 +87,16 @@ export function fetchLatestExtraction(id: number): Promise<Extraction> {
 
 export function askPaper(id: number, payload: AskPayload): Promise<AskResponse> {
   return request<AskResponse>(`/papers/${id}/ask`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function processPaper(
+  id: number,
+  payload: ProcessPaperRequest,
+): Promise<ProcessPaperResponse> {
+  return request<ProcessPaperResponse>(`/papers/${id}/process`, {
     method: 'POST',
     body: JSON.stringify(payload),
   })

@@ -5,9 +5,10 @@ import {
   extractPaper,
   fetchLatestExtraction,
   parsePdf,
+  processPaper,
   resolvePdf,
 } from '../api/papers'
-import type { Extraction, Paper } from '../types'
+import type { Extraction, Paper, ProcessPaperResponse } from '../types'
 
 const props = defineProps<{
   paper: Paper | null
@@ -20,12 +21,14 @@ const emit = defineEmits<{
 const loadingAction = ref<string | null>(null)
 const errorMessage = ref('')
 const latestExtraction = ref<Extraction | null>(null)
+const processResult = ref<ProcessPaperResponse | null>(null)
 
 watch(
   () => props.paper?.id,
   () => {
     errorMessage.value = ''
     latestExtraction.value = null
+    processResult.value = null
     loadingAction.value = null
   },
 )
@@ -39,6 +42,9 @@ async function runAction(label: string, action: () => Promise<unknown>, shouldRe
     const result = await action()
     if (label === 'latest') {
       latestExtraction.value = result as Extraction
+    }
+    if (label === 'process') {
+      processResult.value = result as ProcessPaperResponse
     }
     if (shouldRefresh) emit('refresh')
   } catch (error) {
@@ -86,10 +92,32 @@ function extractSelectedPaper() {
   )
 }
 
+function processSelectedPaper() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction('process', () =>
+    processPaper(id, {
+      resolve_pdf: true,
+      download_pdf: true,
+      parse_pdf: true,
+      extract: true,
+      extract_mode: 'mock',
+      user_topic: 'LLM inference systems',
+      max_chunks: 8,
+    }),
+  )
+}
+
 function loadLatestExtraction() {
   const id = props.paper?.id
   if (!id) return
   void runAction('latest', () => fetchLatestExtraction(id), false)
+}
+
+function stepClass(status: string) {
+  if (status === 'success') return 'border-green-200 bg-green-50 text-green-800'
+  if (status === 'failed') return 'border-red-200 bg-red-50 text-red-800'
+  return 'border-slate-200 bg-slate-50 text-slate-700'
 }
 </script>
 
@@ -125,6 +153,9 @@ function loadLatestExtraction() {
       </div>
 
       <div class="mt-4 grid grid-cols-2 gap-2">
+        <button class="button-primary col-span-2" type="button" :disabled="!!loadingAction" @click="processSelectedPaper">
+          {{ loadingAction === 'process' ? 'Processing...' : 'Process Paper' }}
+        </button>
         <button class="button-primary" type="button" :disabled="!!loadingAction" @click="resolveSelectedPdf">
           {{ loadingAction === 'resolve' ? 'Resolving...' : 'Resolve PDF' }}
         </button>
@@ -150,6 +181,24 @@ function loadLatestExtraction() {
       <p v-if="errorMessage" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
         {{ errorMessage }}
       </p>
+
+      <div v-if="processResult" class="mt-4">
+        <h3 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Process Result</h3>
+        <div class="space-y-2">
+          <div
+            v-for="step in processResult.steps"
+            :key="step.name"
+            class="rounded-md border px-3 py-2 text-xs"
+            :class="stepClass(step.status)"
+          >
+            <div class="mb-1 flex items-center justify-between gap-3">
+              <span class="font-medium">{{ step.name }}</span>
+              <span class="uppercase">{{ step.status }}</span>
+            </div>
+            <p class="leading-5">{{ step.message }}</p>
+          </div>
+        </div>
+      </div>
 
       <div v-if="latestExtraction" class="mt-4">
         <h3 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Latest Extraction</h3>
