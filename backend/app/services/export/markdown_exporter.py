@@ -2,6 +2,7 @@ import json
 
 from app.models.extraction import Extraction
 from app.models.paper import Paper
+from app.models.paper_asset import PaperAsset
 from app.schemas.paper import PaperEnrichedRead
 
 
@@ -38,10 +39,76 @@ def section(title: str, value: object) -> str:
     return f"### {title}\n\n{content or 'No extraction available yet.'}\n"
 
 
+def markdown_asset_path(asset: PaperAsset) -> str:
+    path = asset.local_path or ""
+    normalized = path.replace("\\", "/")
+    if normalized.startswith("storage/assets/"):
+        return "../assets/" + normalized.removeprefix("storage/assets/")
+    return normalized
+
+
+def figures_and_tables_section(assets: list[PaperAsset]) -> list[str]:
+    page_images = [asset for asset in assets if asset.asset_type == "page_image"]
+    figure_captions = [
+        asset for asset in assets if asset.asset_type == "figure_caption"
+    ]
+    table_captions = [asset for asset in assets if asset.asset_type == "table_caption"]
+    table_texts = [asset for asset in assets if asset.asset_type == "table_text"]
+
+    lines = [
+        "## Figures and Tables",
+        "",
+        "### Page Images",
+        "",
+    ]
+
+    if page_images:
+        for asset in page_images:
+            page_label = asset.page_number or asset.asset_index
+            lines.append(f"![Page {page_label}]({markdown_asset_path(asset)})")
+            lines.append("")
+    else:
+        lines.extend(["No page images extracted yet.", ""])
+
+    lines.extend(["### Figure Captions", ""])
+    if figure_captions:
+        for asset in figure_captions:
+            lines.append(f"- Page {asset.page_number or '-'}: {asset.caption or asset.text_content or ''}")
+    else:
+        lines.append("No figure captions extracted yet.")
+    lines.append("")
+
+    lines.extend(["### Table Captions and Raw Table Text", ""])
+    if table_captions:
+        for asset in table_captions:
+            lines.append(f"- Page {asset.page_number or '-'}: {asset.caption or asset.text_content or ''}")
+    else:
+        lines.append("No table captions extracted yet.")
+    lines.append("")
+
+    if table_texts:
+        for asset in table_texts:
+            lines.extend(
+                [
+                    f"Page {asset.page_number or '-'} raw table text:",
+                    "",
+                    "```text",
+                    asset.text_content or "",
+                    "```",
+                    "",
+                ]
+            )
+    else:
+        lines.extend(["No raw table text extracted yet.", ""])
+
+    return lines
+
+
 def export_paper_to_markdown(
     paper: Paper,
     latest_extraction: Extraction | None,
     enriched: PaperEnrichedRead | None = None,
+    assets: list[PaperAsset] | None = None,
 ) -> str:
     data = extraction_data(latest_extraction)
     title = paper.title
@@ -165,5 +232,7 @@ def export_paper_to_markdown(
             "",
         ]
     )
+
+    lines.extend(figures_and_tables_section(assets or []))
 
     return "\n".join(lines)

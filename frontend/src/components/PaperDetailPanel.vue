@@ -4,14 +4,16 @@ import {
   downloadPdf,
   exportBibtex,
   exportMarkdown,
+  extractAssets,
   extractPaper,
+  fetchAssets,
   fetchLatestExtraction,
   parsePdf,
   previewMarkdown,
   processPaper,
   resolvePdf,
 } from '../api/papers'
-import type { Extraction, Paper, ProcessPaperResponse } from '../types'
+import type { ExtractAssetsResponse, Extraction, Paper, PaperAsset, ProcessPaperResponse } from '../types'
 
 const API_BASE = 'http://127.0.0.1:8000'
 
@@ -27,8 +29,11 @@ const loadingAction = ref<string | null>(null)
 const errorMessage = ref('')
 const latestExtraction = ref<Extraction | null>(null)
 const processResult = ref<ProcessPaperResponse | null>(null)
+const assetResult = ref<ExtractAssetsResponse | null>(null)
+const assets = ref<PaperAsset[]>([])
 const showPdfPreview = ref(false)
 const markdownPreview = ref('')
+const markdownPreviewLoaded = ref(false)
 const extractionMode = ref<'mock' | 'openai'>('openai')
 
 const extractionData = computed<Record<string, unknown> | null>(() => {
@@ -52,15 +57,25 @@ const pdfPreviewSrc = computed(() => {
   return `${API_BASE}/static/pdfs/${match[1].split('/').map(encodeURIComponent).join('/')}`
 })
 
+const pageImages = computed(() => assets.value.filter((asset) => asset.asset_type === 'page_image'))
+const figureCaptions = computed(() => assets.value.filter((asset) => asset.asset_type === 'figure_caption'))
+const tableAssets = computed(() =>
+  assets.value.filter((asset) => asset.asset_type === 'table_caption' || asset.asset_type === 'table_text'),
+)
+const shownPageImages = computed(() => pageImages.value.slice(0, 3))
+
 watch(
   () => props.paper?.id,
   () => {
     errorMessage.value = ''
     latestExtraction.value = null
     processResult.value = null
+    assetResult.value = null
+    assets.value = []
     loadingAction.value = null
     showPdfPreview.value = false
     markdownPreview.value = ''
+    markdownPreviewLoaded.value = false
   },
 )
 
@@ -77,12 +92,22 @@ async function runAction(label: string, action: () => Promise<unknown>, shouldRe
     if (label === 'process') {
       processResult.value = result as ProcessPaperResponse
     }
+    if (label === 'assets') {
+      assets.value = result as PaperAsset[]
+    }
+    if (label === 'extract-assets') {
+      assetResult.value = result as ExtractAssetsResponse
+    }
     if (label === 'preview-markdown') {
       markdownPreview.value = result as string
+      markdownPreviewLoaded.value = true
     }
     if (shouldRefresh) emit('refresh')
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Request failed'
+    if (label === 'preview-markdown') {
+      markdownPreviewLoaded.value = false
+    }
   } finally {
     loadingAction.value = null
   }
@@ -104,6 +129,26 @@ function parseSelectedPdf() {
   const id = props.paper?.id
   if (!id) return
   void runAction('parse', () => parsePdf(id))
+}
+
+function extractSelectedAssets() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction(
+    'extract-assets',
+    async () => {
+      const result = await extractAssets(id)
+      assets.value = await fetchAssets(id)
+      return result
+    },
+    false,
+  )
+}
+
+function loadSelectedAssets() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction('assets', () => fetchAssets(id), false)
 }
 
 function extractSelectedPaper() {
@@ -143,6 +188,8 @@ function loadLatestExtraction() {
 function previewSelectedMarkdown() {
   const id = props.paper?.id
   if (!id) return
+  markdownPreview.value = ''
+  markdownPreviewLoaded.value = false
   void runAction('preview-markdown', () => previewMarkdown(id), false)
 }
 
@@ -181,6 +228,14 @@ function exportSelectedBibtex() {
     },
     false,
   )
+}
+
+function assetImageSrc(asset: PaperAsset) {
+  if (!asset.local_path) return ''
+  const normalized = asset.local_path.replace(/\\/g, '/')
+  const match = normalized.match(/(?:^|\/)storage\/assets\/(.+)$/)
+  if (!match) return ''
+  return `${API_BASE}/static/assets/${match[1].split('/').map(encodeURIComponent).join('/')}`
 }
 
 function stepClass(status: string) {
@@ -442,9 +497,95 @@ function formatSummaryValue(value: unknown) {
       </section>
 
       <section class="p-4">
+        <h3 class="section-title">Assets</h3>
+        <div class="mb-3 grid grid-cols-2 gap-2">
+          <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="extractSelectedAssets">
+            {{ loadingAction === 'extract-assets' ? 'Extracting...' : 'Extract Assets' }}
+          </button>
+          <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="loadSelectedAssets">
+            {{ loadingAction === 'assets' ? 'Loading...' : 'Load Assets' }}
+          </button>
+        </div>
+
+        <dl class="detail-grid">
+          <dt>Asset Count</dt>
+          <dd>{{ assetResult?.asset_count ?? assets.length }}</dd>
+          <dt>Page Images</dt>
+          <dd>{{ assetResult?.page_image_count ?? pageImages.length }}</dd>
+          <dt>Figure Captions</dt>
+          <dd>{{ assetResult?.figure_caption_count ?? figureCaptions.length }}</dd>
+          <dt>Table Captions</dt>
+          <dd>{{ assetResult?.table_caption_count ?? tableAssets.filter((asset) => asset.asset_type === 'table_caption').length }}</dd>
+        </dl>
+
+        <p v-if="!assets.length" class="mt-3 text-sm text-slate-500">
+          No assets loaded yet.
+        </p>
+
+        <div v-if="shownPageImages.length" class="mt-3">
+          <h4 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Page Images</h4>
+          <div class="grid grid-cols-3 gap-2">
+            <a
+              v-for="asset in shownPageImages"
+              :key="asset.id"
+              class="block overflow-hidden rounded-md border border-slate-200 bg-slate-50"
+              :href="assetImageSrc(asset)"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <img
+                class="h-28 w-full object-cover"
+                :src="assetImageSrc(asset)"
+                :alt="`Page ${asset.page_number ?? asset.asset_index}`"
+              />
+              <span class="block px-2 py-1 text-xs text-slate-600">Page {{ asset.page_number ?? '-' }}</span>
+            </a>
+          </div>
+          <p v-if="pageImages.length > shownPageImages.length" class="mt-2 text-xs text-slate-500">
+            Showing first {{ shownPageImages.length }} of {{ pageImages.length }} page images.
+          </p>
+        </div>
+
+        <div v-if="figureCaptions.length" class="mt-3">
+          <h4 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Figure Captions</h4>
+          <div class="space-y-2">
+            <p
+              v-for="asset in figureCaptions"
+              :key="asset.id"
+              class="max-h-28 overflow-auto rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-700"
+            >
+              Page {{ asset.page_number ?? '-' }}: {{ asset.caption || asset.text_content || '-' }}
+            </p>
+          </div>
+        </div>
+
+        <div v-if="tableAssets.length" class="mt-3">
+          <h4 class="mb-2 text-xs font-medium uppercase tracking-normal text-slate-500">Tables</h4>
+          <div class="space-y-2">
+            <div
+              v-for="asset in tableAssets"
+              :key="asset.id"
+              class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700"
+            >
+              <div class="mb-1 font-medium text-slate-600">
+                {{ asset.asset_type }} · Page {{ asset.page_number ?? '-' }}
+              </div>
+              <pre class="max-h-32 overflow-auto whitespace-pre-wrap leading-5">{{ asset.text_content || asset.caption || '-' }}</pre>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="p-4">
         <h3 class="section-title">Markdown Preview</h3>
-        <p v-if="!markdownPreview" class="text-sm text-slate-500">
+        <p v-if="loadingAction === 'preview-markdown'" class="text-sm text-slate-500">
+          Loading Markdown preview...
+        </p>
+        <p v-else-if="!markdownPreviewLoaded" class="text-sm text-slate-500">
           Click Preview Markdown to load the exported note without downloading it.
+        </p>
+        <p v-else-if="!markdownPreview" class="text-sm text-slate-500">
+          Markdown export returned an empty document.
         </p>
         <pre
           v-else

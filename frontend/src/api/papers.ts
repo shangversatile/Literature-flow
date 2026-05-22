@@ -1,9 +1,11 @@
 import type {
   AskPayload,
   AskResponse,
+  ExtractAssetsResponse,
   ExtractPayload,
   Extraction,
   Paper,
+  PaperAsset,
   PaperUpdatePayload,
   ProcessPaperRequest,
   ProcessPaperResponse,
@@ -99,6 +101,14 @@ export function downloadPdf(id: number): Promise<Paper> {
 
 export function parsePdf(id: number): Promise<unknown> {
   return request<unknown>(`/papers/${id}/parse-pdf`, { method: 'POST' })
+}
+
+export function extractAssets(id: number): Promise<ExtractAssetsResponse> {
+  return request<ExtractAssetsResponse>(`/papers/${id}/extract-assets`, { method: 'POST' })
+}
+
+export function fetchAssets(id: number): Promise<PaperAsset[]> {
+  return request<PaperAsset[]>(`/papers/${id}/assets`)
 }
 
 export function extractPaper(id: number, payload: ExtractPayload): Promise<unknown> {

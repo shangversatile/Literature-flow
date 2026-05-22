@@ -10,10 +10,12 @@ from sqlmodel import Session, select
 from app.db.session import get_session
 from app.models.extraction import Extraction
 from app.models.paper import Paper
+from app.models.paper_asset import PaperAsset
 from app.models.paper_chunk import PaperChunk
 from app.models.paper_text import PaperText
 from app.schemas.extraction import ExtractRequest, ExtractResponse, ExtractionRead
 from app.schemas.paper import PaperCreate, PaperEnrichedRead, PaperRead, PaperUpdate
+from app.schemas.paper_asset import ExtractAssetsResponse, PaperAssetRead
 from app.schemas.paper_text import PaperChunkRead, PaperTextRead, ParsePdfResponse
 from app.schemas.rag import AskPaperRequest, AskPaperResponse
 from app.schemas.workflow import (
@@ -33,6 +35,7 @@ from app.services.extraction.llm_extractor import (
     mock_extract,
 )
 from app.services.extraction.pdf_parser import extract_text_from_pdf
+from app.services.extraction.pdf_assets import extract_pdf_assets
 from app.services.extraction.rag_qa import (
     answer_with_openai,
     mock_answer_question,
@@ -125,7 +128,12 @@ def export_markdown(
 
     enriched = enrich_paper_for_display(paper)
     latest_extraction = latest_extraction_for_paper(paper_id, session)
-    content = export_paper_to_markdown(paper, latest_extraction, enriched)
+    assets = session.exec(
+        select(PaperAsset)
+        .where(PaperAsset.paper_id == paper_id)
+        .order_by(PaperAsset.asset_type, PaperAsset.page_number, PaperAsset.asset_index)
+    ).all()
+    content = export_paper_to_markdown(paper, latest_extraction, enriched, assets)
     filename = build_export_filename(paper, enriched, "md")
     return PlainTextResponse(
         content,
@@ -151,6 +159,67 @@ def export_bibtex(
         media_type="application/x-bibtex; charset=utf-8",
         headers={"Content-Disposition": f'attachment; filename="{filename}"'},
     )
+
+
+@router.post("/{paper_id}/extract-assets", response_model=ExtractAssetsResponse)
+def extract_paper_assets(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> ExtractAssetsResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    if not paper.local_pdf_path:
+        raise HTTPException(
+            status_code=400,
+            detail="No local PDF found. Please call download-pdf first.",
+        )
+
+    try:
+        asset_data = extract_pdf_assets(paper.local_pdf_path, paper_id)
+    except (FileNotFoundError, ValueError) as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    old_assets = session.exec(
+        select(PaperAsset).where(PaperAsset.paper_id == paper_id)
+    ).all()
+    for old_asset in old_assets:
+        session.delete(old_asset)
+
+    new_assets = [PaperAsset(paper_id=paper_id, **asset) for asset in asset_data]
+    for asset in new_assets:
+        session.add(asset)
+
+    session.commit()
+
+    return ExtractAssetsResponse(
+        paper_id=paper_id,
+        asset_count=len(new_assets),
+        page_image_count=sum(1 for asset in new_assets if asset.asset_type == "page_image"),
+        figure_caption_count=sum(
+            1 for asset in new_assets if asset.asset_type == "figure_caption"
+        ),
+        table_caption_count=sum(
+            1 for asset in new_assets if asset.asset_type == "table_caption"
+        ),
+        status="assets_extracted",
+    )
+
+
+@router.get("/{paper_id}/assets", response_model=list[PaperAssetRead])
+def read_paper_assets(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> list[PaperAsset]:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    return session.exec(
+        select(PaperAsset)
+        .where(PaperAsset.paper_id == paper_id)
+        .order_by(PaperAsset.asset_type, PaperAsset.page_number, PaperAsset.asset_index)
+    ).all()
 
 
 @router.get("/{paper_id}", response_model=PaperRead)

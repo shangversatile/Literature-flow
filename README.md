@@ -185,6 +185,11 @@ yet." in the structured summary sections. BibTeX export produces a simple
 The Dashboard also provides `Export Markdown` and `Export BibTeX` buttons in the
 paper detail panel.
 
+In the paper detail panel, `Preview Markdown` fetches the Markdown export and
+shows the Markdown text inside the page without downloading a file. `Export
+Markdown` downloads the `.md` file and uses the filename from the backend
+`Content-Disposition` header.
+
 Exported filenames use readable metadata:
 
 ```text
@@ -209,6 +214,34 @@ curl -X POST "http://127.0.0.1:8000/papers/1/parse-pdf"
 curl "http://127.0.0.1:8000/papers/1/pdf-text"
 curl "http://127.0.0.1:8000/papers/1/chunks"
 ```
+
+PDF figures, tables, and unstructured assets MVP:
+
+Run `download-pdf` first so `Paper.local_pdf_path` points to a local PDF file,
+then extract page images and simple captions.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/extract-assets"
+curl "http://127.0.0.1:8000/papers/1/assets"
+```
+
+Extracted assets are saved under:
+
+```text
+storage/assets/{paper_id}/
+```
+
+Page images are served from:
+
+```text
+http://127.0.0.1:8000/static/assets/{paper_id}/page-001.png
+```
+
+This is an MVP. It supports page image rendering and simple `Figure`, `Fig.`,
+and `Table` caption detection. It does not support OCR, precise figure/table
+cropping, or multimodal chart understanding. Markdown export includes a
+`Figures and Tables` section with extracted page images, figure captions, table
+captions, and raw table text when available.
 
 LLM structured extraction:
 

@@ -10,7 +10,9 @@ from app.db.session import init_db
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 PDF_STORAGE_DIR = PROJECT_ROOT / "storage" / "pdfs"
+ASSET_STORAGE_DIR = PROJECT_ROOT / "storage" / "assets"
 PDF_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
+ASSET_STORAGE_DIR.mkdir(parents=True, exist_ok=True)
 
 app = FastAPI(title="LitFlow Backend")
 
@@ -23,6 +25,7 @@ app.add_middleware(
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["Content-Disposition"],
 )
 
 
@@ -34,6 +37,7 @@ def on_startup() -> None:
 app.include_router(papers_router)
 app.include_router(search_router)
 app.mount("/static/pdfs", StaticFiles(directory=PDF_STORAGE_DIR), name="pdfs")
+app.mount("/static/assets", StaticFiles(directory=ASSET_STORAGE_DIR), name="assets")
 
 
 @app.get("/")
