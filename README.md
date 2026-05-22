@@ -176,6 +176,19 @@ yet." in the structured summary sections. BibTeX export produces a simple
 The Dashboard also provides `Export Markdown` and `Export BibTeX` buttons in the
 paper detail panel.
 
+Exported filenames use readable metadata:
+
+```text
+{year}-{short-title}-{venue}-{rank}-id{paper_id}.md
+{year}-{short-title}-{venue}-{rank}-id{paper_id}.bib
+```
+
+Example:
+
+```text
+2023-flashattention-2-iclr-a-star-id1.md
+```
+
 PDF text parsing and RAG-ready chunks:
 
 Run `download-pdf` first so `Paper.local_pdf_path` points to a local PDF file,

@@ -40,7 +40,10 @@ from app.services.extraction.rag_qa import (
 )
 from app.services.extraction.text_chunker import chunk_text_pages
 from app.services.export.bibtex_exporter import export_paper_to_bibtex
-from app.services.export.markdown_exporter import export_paper_to_markdown
+from app.services.export.markdown_exporter import (
+    build_export_filename,
+    export_paper_to_markdown,
+)
 from app.services.paper_enrichment import enrich_paper_for_display
 
 
@@ -54,15 +57,6 @@ def normalize_title(title: str) -> str:
     )
     text = re.sub(r"\s+", " ", text)
     return text.strip()
-
-
-def safe_filename(text: str) -> str:
-    value = text.lower()
-    value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value)
-    value = re.sub(r"\s+", "-", value)
-    value = re.sub(r"[^a-z0-9._-]", "", value)
-    value = value.strip(".-_")
-    return (value or "paper")[:80]
 
 
 def latest_extraction_for_paper(
@@ -134,7 +128,7 @@ def export_markdown(
     enriched = enrich_paper_for_display(paper)
     latest_extraction = latest_extraction_for_paper(paper_id, session)
     content = export_paper_to_markdown(paper, latest_extraction, enriched)
-    filename = f"{safe_filename(paper.title)}.md"
+    filename = build_export_filename(paper, enriched, "md")
     return PlainTextResponse(
         content,
         media_type="text/markdown; charset=utf-8",
@@ -151,8 +145,9 @@ def export_bibtex(
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
 
+    enriched = enrich_paper_for_display(paper)
     content = export_paper_to_bibtex(paper)
-    filename = f"{safe_filename(paper.title)}.bib"
+    filename = build_export_filename(paper, enriched, "bib")
     return PlainTextResponse(
         content,
         media_type="application/x-bibtex; charset=utf-8",
