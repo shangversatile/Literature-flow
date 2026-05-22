@@ -1,14 +1,13 @@
 import re
 import string
 
+from app.services.ranking.ranking_loader import lookup_core_conference_rank
 
-CORE_NOTE = (
-    "Built-in CORE-style conference mapping is incomplete and configurable; "
-    "full CORE data can be imported later."
-)
-CORE_UNRANKED_NOTE = (
-    "Conference not found in the current built-in CORE-style mapping; "
-    "full CORE list can be imported later."
+
+FALLBACK_NOTE = "Fallback built-in ranking; import CORE CSV for authoritative local mapping."
+FALLBACK_UNRANKED_NOTE = (
+    "Fallback built-in ranking; conference is not ranked in the local fallback. "
+    "Import CORE CSV for authoritative local mapping."
 )
 JOURNAL_NOTE = (
     "Journal quartile requires imported SCImago or JCR data; not available "
@@ -236,14 +235,30 @@ def classify_publication_venue(
             PREPRINT_NOTE,
         )
 
+    csv_rank = lookup_core_conference_rank(venue) or lookup_core_conference_rank(
+        venue_normalized
+    )
+    if csv_rank:
+        rank_source = csv_rank["source"]
+        if rank_source:
+            rank_source = f"{rank_source}-local-csv"
+        return _classification(
+            csv_rank["acronym"] or venue_normalized,
+            "conference",
+            "published",
+            rank_source or "CORE-local-csv",
+            csv_rank["rank"] or "Unknown",
+            csv_rank["note"],
+        )
+
     if venue_normalized in CONFERENCE_VENUES:
         return _classification(
             venue_normalized,
             "conference",
             "published",
-            "CORE",
+            "LitFlow-fallback",
             _conference_rank(venue_normalized),
-            CORE_NOTE,
+            FALLBACK_NOTE,
         )
 
     if _looks_like_journal(venue_normalized):
@@ -261,9 +276,9 @@ def classify_publication_venue(
             venue_normalized,
             "conference",
             "published",
-            "CORE",
+            "LitFlow-fallback",
             "Unranked",
-            CORE_UNRANKED_NOTE,
+            FALLBACK_UNRANKED_NOTE,
         )
 
     return _classification(

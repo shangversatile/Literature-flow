@@ -1,0 +1,18 @@
+acronym,name,rank,source,year,note
+NeurIPS,Advances in Neural Information Processing Systems,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ICML,International Conference on Machine Learning,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ICLR,International Conference on Learning Representations,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ACL,Association for Computational Linguistics,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+CVPR,IEEE/CVF Conference on Computer Vision and Pattern Recognition,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ICCV,International Conference on Computer Vision,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ECCV,European Conference on Computer Vision,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+AAAI,AAAI Conference on Artificial Intelligence,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+IJCAI,International Joint Conference on Artificial Intelligence,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+EMNLP,Empirical Methods in Natural Language Processing,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+KDD,ACM SIGKDD Conference on Knowledge Discovery and Data Mining,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+WWW,The Web Conference,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+OSDI,USENIX Symposium on Operating Systems Design and Implementation,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+SOSP,ACM Symposium on Operating Systems Principles,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+MLSys,Conference on Machine Learning and Systems,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+SIGMOD,ACM SIGMOD International Conference on Management of Data,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+VLDB,International Conference on Very Large Data Bases,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available

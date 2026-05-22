@@ -107,8 +107,22 @@ Unified search results include scoring v2 fields:
 `venue_rank` is also kept for compatibility and is set to `rank_value`.
 
 Conference rank uses CORE-style `A*`, `A`, `B`, `C`, `Unranked`, and `Unknown`
-categories. The current built-in mapping is incomplete and configurable; it is
-not a universal official ranking. Journal quartile support is
+categories. LitFlow first checks the local CSV file:
+
+```text
+storage/rankings/core_conference_rankings.csv
+```
+
+The CSV columns are:
+
+```text
+acronym,name,rank,source,year,note
+```
+
+The checked-in file is a small development seed, not a complete official list.
+You can replace it with a complete CSV prepared from the CORE / ICORE portal.
+When a venue is not found in the CSV, LitFlow falls back to its small built-in
+mapping with `rank_source = LitFlow-fallback`. Journal quartile support is
 SCImago/JCR-ready, but requires imported data, so journals are currently marked
 `Unknown` unless local quartile data is added later. Preprint-only papers are
 marked `Unpublished`. The system no longer uses `S` or `Journal` as rank values.
