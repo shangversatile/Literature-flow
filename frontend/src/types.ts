@@ -62,6 +62,27 @@ export interface AskResponse {
   evidence_chunk_indices: number[]
 }
 
+export interface PaperAsset {
+  id: number
+  paper_id: number
+  asset_type: string
+  asset_index: number
+  page_number: number | null
+  caption: string | null
+  local_path: string | null
+  text_content: string | null
+  created_at: string
+}
+
+export interface ExtractAssetsResponse {
+  paper_id: number
+  asset_count: number
+  page_image_count: number
+  figure_caption_count: number
+  table_caption_count: number
+  status: string
+}
+
 export type PaperUpdatePayload = Partial<
   Pick<
     Paper,

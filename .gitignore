@@ -5,3 +5,5 @@ node_modules/
 *.db
 storage/pdfs/*
 dist/
+storage/assets/*
+!storage/assets/.gitkeep
