@@ -6,7 +6,12 @@ from sqlmodel import Session, select
 
 from app.db.session import get_session
 from app.models.paper import Paper
-from app.schemas.search import PaperSearchResult, SearchSaveRequest, SearchSaveResponse
+from app.schemas.search import (
+    PaperSearchResult,
+    SearchSaveRequest,
+    SearchSaveResponse,
+    SearchSaveSelectedRequest,
+)
 from app.services.search.aggregator import normalize_doi, normalize_title, search_all_sources
 from app.services.search.arxiv import (
     ArxivParseError,
@@ -93,6 +98,44 @@ def create_paper_from_search_result(result: PaperSearchResult) -> Paper:
     )
 
 
+def save_search_results(
+    session: Session,
+    results: list[PaperSearchResult],
+) -> tuple[int, int, list[Paper]]:
+    inserted_count = 0
+    skipped_count = 0
+    saved_papers: list[Paper] = []
+
+    for result in results:
+        if not result.title.strip():
+            skipped_count += 1
+            continue
+
+        existing_paper = find_existing_paper(session, result)
+        if existing_paper:
+            skipped_count += 1
+            if update_existing_paper(existing_paper, result):
+                session.add(existing_paper)
+            saved_papers.append(existing_paper)
+            continue
+
+        paper = create_paper_from_search_result(result)
+        session.add(paper)
+        saved_papers.append(paper)
+        inserted_count += 1
+
+    try:
+        session.commit()
+    except IntegrityError as exc:
+        session.rollback()
+        raise HTTPException(status_code=409, detail="Paper DOI already exists") from exc
+
+    for paper in saved_papers:
+        session.refresh(paper)
+
+    return inserted_count, skipped_count, saved_papers
+
+
 @router.get("/semantic-scholar", response_model=list[PaperSearchResult])
 async def search_semantic_scholar_api(
     query: str = Query(..., min_length=1),
@@ -165,35 +208,35 @@ async def search_all_and_save_api(
             papers=[],
         )
 
-    inserted_count = 0
-    skipped_count = 0
-    saved_papers: list[Paper] = []
-
-    for result in results:
-        existing_paper = find_existing_paper(session, result)
-        if existing_paper:
-            skipped_count += 1
-            if update_existing_paper(existing_paper, result):
-                session.add(existing_paper)
-            saved_papers.append(existing_paper)
-            continue
-
-        paper = create_paper_from_search_result(result)
-        session.add(paper)
-        saved_papers.append(paper)
-        inserted_count += 1
-
-    try:
-        session.commit()
-    except IntegrityError as exc:
-        session.rollback()
-        raise HTTPException(status_code=409, detail="Paper DOI already exists") from exc
-
-    for paper in saved_papers:
-        session.refresh(paper)
+    inserted_count, skipped_count, saved_papers = save_search_results(session, results)
 
     return SearchSaveResponse(
         query=query,
+        inserted_count=inserted_count,
+        skipped_count=skipped_count,
+        papers=saved_papers,
+    )
+
+
+@router.post("/save-selected", response_model=SearchSaveResponse)
+def save_selected_search_results_api(
+    request: SearchSaveSelectedRequest,
+    session: Session = Depends(get_session),
+) -> SearchSaveResponse:
+    if not request.papers:
+        return SearchSaveResponse(
+            query=(request.query or "").strip(),
+            inserted_count=0,
+            skipped_count=0,
+            papers=[],
+        )
+
+    inserted_count, skipped_count, saved_papers = save_search_results(
+        session,
+        request.papers,
+    )
+    return SearchSaveResponse(
+        query=(request.query or "").strip(),
         inserted_count=inserted_count,
         skipped_count=skipped_count,
         papers=saved_papers,

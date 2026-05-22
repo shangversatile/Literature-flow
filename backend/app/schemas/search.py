@@ -35,6 +35,11 @@ class SearchSaveRequest(SQLModel):
     limit: int = 10
 
 
+class SearchSaveSelectedRequest(SQLModel):
+    query: str | None = None
+    papers: list[PaperSearchResult] = Field(default_factory=list)
+
+
 class SearchSaveResponse(SQLModel):
     query: str
     inserted_count: int
