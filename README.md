@@ -170,6 +170,11 @@ The enriched responses include `final_score`, `venue_normalized`, `venue_type`,
 `rank_note`, and compatibility fields such as `venue_rank`. These fields are
 computed at read time for Dashboard display.
 
+LitFlow also saves paper authors from search results. Authors are stored in
+separate author/link records and deduplicated with a simple normalized-name
+rule: lowercase, remove punctuation, and collapse whitespace. LitFlow does not
+perform institution recognition or complex author disambiguation.
+
 Single-paper export:
 
 ```bash
@@ -177,13 +182,13 @@ curl "http://127.0.0.1:8000/papers/1/export/markdown"
 curl "http://127.0.0.1:8000/papers/1/export/bibtex"
 ```
 
-Markdown export includes frontmatter metadata, venue rank fields, abstract, and
-the latest LLM extraction when available. If no extraction exists yet, LitFlow
-still exports a basic literature-note template with "No extraction available
-yet." in the structured summary sections. BibTeX export produces a simple
-`@inproceedings`, `@article`, or `@misc` entry based on the detected venue type.
-The Dashboard also provides `Export Markdown` and `Export BibTeX` buttons in the
-paper detail panel.
+Markdown export includes frontmatter metadata, authors, venue rank fields,
+abstract, and the latest LLM extraction when available. If no extraction exists
+yet, LitFlow still exports a basic literature-note template with "No extraction
+available yet." in the structured summary sections. BibTeX export includes an
+`author` field and produces a simple `@inproceedings`, `@article`, or `@misc`
+entry based on the detected venue type. The Dashboard also provides `Export
+Markdown` and `Export BibTeX` buttons in the paper detail panel.
 
 In the paper detail panel, `Preview Markdown` fetches the Markdown export and
 shows the Markdown text inside the page without downloading a file. `Export

@@ -12,6 +12,7 @@ from app.schemas.search import (
     SearchSaveResponse,
     SearchSaveSelectedRequest,
 )
+from app.services.authors import get_paper_author_names, save_paper_authors
 from app.services.search.aggregator import normalize_doi, normalize_title, search_all_sources
 from app.services.search.arxiv import (
     ArxivParseError,
@@ -116,11 +117,16 @@ def save_search_results(
             skipped_count += 1
             if update_existing_paper(existing_paper, result):
                 session.add(existing_paper)
+            if result.authors and not get_paper_author_names(session, existing_paper.id):
+                save_paper_authors(session, existing_paper.id, result.authors)
             saved_papers.append(existing_paper)
             continue
 
         paper = create_paper_from_search_result(result)
         session.add(paper)
+        session.flush()
+        if paper.id is not None:
+            save_paper_authors(session, paper.id, result.authors)
         saved_papers.append(paper)
         inserted_count += 1
 

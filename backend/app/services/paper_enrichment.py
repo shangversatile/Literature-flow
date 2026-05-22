@@ -44,6 +44,7 @@ def build_external_ids(paper: Paper) -> dict[str, str]:
 def enrich_paper_for_display(
     paper: Paper,
     query: str | None = None,
+    authors: list[str] | None = None,
 ) -> PaperEnrichedRead:
     sources = infer_sources(paper)
     search_result = PaperSearchResult(
@@ -81,6 +82,7 @@ def enrich_paper_for_display(
             "final_score": search_result.final_score,
             "quality_score": search_result.quality_score,
             "sources": search_result.sources,
+            "authors": authors or [],
         }
     )
     return PaperEnrichedRead.model_validate(data)

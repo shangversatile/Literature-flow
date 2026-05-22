@@ -46,6 +46,13 @@ function displayScore(score: number | null | undefined) {
 function displayRank(paper: Paper) {
   return paper.rank_value || paper.venue_rank || '-'
 }
+
+function displayAuthors(paper: Paper) {
+  const authors = paper.authors || []
+  if (!authors.length) return '-'
+  if (authors.length <= 2) return authors.join(', ')
+  return `${authors.slice(0, 2).join(', ')} et al.`
+}
 </script>
 
 <template>
@@ -53,26 +60,27 @@ function displayRank(paper: Paper) {
     <table class="w-full table-fixed border-collapse text-left text-sm">
       <thead class="sticky top-0 z-10 border-b border-slate-200 bg-slate-50 text-xs uppercase tracking-normal text-slate-500">
         <tr>
-          <th class="w-[32%] px-3 py-2 font-medium">Title</th>
-          <th class="w-[9%] px-3 py-2 font-medium">
+          <th class="w-[28%] px-3 py-2 font-medium">Title</th>
+          <th class="w-[13%] px-3 py-2 font-medium">Authors</th>
+          <th class="w-[8%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('year')">
               Year {{ sortMark('year') }}
             </button>
           </th>
-          <th class="w-[14%] px-3 py-2 font-medium">Venue</th>
-          <th class="w-[9%] px-3 py-2 font-medium">
+          <th class="w-[13%] px-3 py-2 font-medium">Venue</th>
+          <th class="w-[8%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('citation_count')">
               Cites {{ sortMark('citation_count') }}
             </button>
           </th>
-          <th class="w-[10%] px-3 py-2 font-medium">
+          <th class="w-[9%] px-3 py-2 font-medium">
             <button class="table-sort-button" type="button" @click="setSort('final_score')">
               Score {{ sortMark('final_score') }}
             </button>
           </th>
-          <th class="w-[9%] px-3 py-2 font-medium">Rank</th>
-          <th class="w-[11%] px-3 py-2 font-medium">Pub</th>
-          <th class="w-[6%] px-3 py-2 font-medium">Status</th>
+          <th class="w-[8%] px-3 py-2 font-medium">Rank</th>
+          <th class="w-[9%] px-3 py-2 font-medium">Pub</th>
+          <th class="w-[4%] px-3 py-2 font-medium">Status</th>
         </tr>
       </thead>
       <tbody>
@@ -87,6 +95,7 @@ function displayRank(paper: Paper) {
             <div class="line-clamp-2 font-medium leading-5 text-slate-900">{{ paper.title }}</div>
             <div v-if="paper.doi" class="truncate text-xs text-slate-400">{{ paper.doi }}</div>
           </td>
+          <td class="truncate px-3 py-2 align-top text-slate-600">{{ displayAuthors(paper) }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ paper.year || '-' }}</td>
           <td class="truncate px-3 py-2 align-top text-slate-600">{{ paper.venue || '-' }}</td>
           <td class="px-3 py-2 align-top text-slate-600">{{ paper.citation_count ?? 0 }}</td>

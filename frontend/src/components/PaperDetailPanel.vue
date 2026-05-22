@@ -277,6 +277,8 @@ function formatSummaryValue(value: unknown) {
         <dl class="detail-grid">
           <dt>Year</dt>
           <dd>{{ paper.year || '-' }}</dd>
+          <dt>Authors</dt>
+          <dd>{{ paper.authors?.length ? paper.authors.join(', ') : '-' }}</dd>
           <dt>Venue</dt>
           <dd>{{ paper.venue || '-' }}</dd>
           <dt>Venue Normalized</dt>

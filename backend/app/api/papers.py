@@ -23,6 +23,7 @@ from app.schemas.workflow import (
     ProcessPaperResponse,
     ProcessStepResult,
 )
+from app.services.authors import get_paper_author_names
 from app.services.download.downloader import PdfDownloadError, download_pdf
 from app.services.download.resolver import resolve_pdf_url
 from app.services.download.unpaywall import (
@@ -100,7 +101,14 @@ def read_enriched_papers(
     session: Session = Depends(get_session),
 ) -> list[PaperEnrichedRead]:
     papers = session.exec(select(Paper)).all()
-    enriched = [enrich_paper_for_display(paper, query) for paper in papers]
+    enriched = [
+        enrich_paper_for_display(
+            paper,
+            query,
+            get_paper_author_names(session, paper.id) if paper.id is not None else [],
+        )
+        for paper in papers
+    ]
     enriched.sort(key=lambda paper: paper.final_score or 0.0, reverse=True)
     return enriched
 
@@ -114,7 +122,11 @@ def read_enriched_paper(
     paper = session.get(Paper, paper_id)
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
-    return enrich_paper_for_display(paper, query)
+    return enrich_paper_for_display(
+        paper,
+        query,
+        get_paper_author_names(session, paper_id),
+    )
 
 
 @router.get("/{paper_id}/export/markdown")
@@ -126,14 +138,15 @@ def export_markdown(
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
 
-    enriched = enrich_paper_for_display(paper)
+    authors = get_paper_author_names(session, paper_id)
+    enriched = enrich_paper_for_display(paper, authors=authors)
     latest_extraction = latest_extraction_for_paper(paper_id, session)
     assets = session.exec(
         select(PaperAsset)
         .where(PaperAsset.paper_id == paper_id)
         .order_by(PaperAsset.asset_type, PaperAsset.page_number, PaperAsset.asset_index)
     ).all()
-    content = export_paper_to_markdown(paper, latest_extraction, enriched, assets)
+    content = export_paper_to_markdown(paper, latest_extraction, enriched, assets, authors)
     filename = build_export_filename(paper, enriched, "md")
     return PlainTextResponse(
         content,
@@ -151,8 +164,9 @@ def export_bibtex(
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
 
-    enriched = enrich_paper_for_display(paper)
-    content = export_paper_to_bibtex(paper)
+    authors = get_paper_author_names(session, paper_id)
+    enriched = enrich_paper_for_display(paper, authors=authors)
+    content = export_paper_to_bibtex(paper, authors)
     filename = build_export_filename(paper, enriched, "bib")
     return PlainTextResponse(
         content,

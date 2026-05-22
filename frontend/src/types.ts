@@ -1,6 +1,7 @@
 export interface Paper {
   id: number
   title: string
+  authors?: string[]
   normalized_title: string | null
   doi: string | null
   year: number | null

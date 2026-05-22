@@ -24,6 +24,7 @@ class PaperRead(PaperBase):
     normalized_title: str | None
     created_at: datetime
     updated_at: datetime
+    authors: list[str] = Field(default_factory=list)
 
 
 class PaperEnrichedRead(PaperRead):

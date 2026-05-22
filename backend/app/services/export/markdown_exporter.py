@@ -39,6 +39,14 @@ def section(title: str, value: object) -> str:
     return f"### {title}\n\n{content or 'No extraction available yet.'}\n"
 
 
+def yaml_list(values: list[str]) -> list[str]:
+    if not values:
+        return ["authors: []"]
+    lines = ["authors:"]
+    lines.extend(f"  - {yaml_string(value)}" for value in values)
+    return lines
+
+
 def markdown_asset_path(asset: PaperAsset) -> str:
     path = asset.local_path or ""
     normalized = path.replace("\\", "/")
@@ -109,9 +117,12 @@ def export_paper_to_markdown(
     latest_extraction: Extraction | None,
     enriched: PaperEnrichedRead | None = None,
     assets: list[PaperAsset] | None = None,
+    authors: list[str] | None = None,
 ) -> str:
     data = extraction_data(latest_extraction)
     title = paper.title
+    author_names = authors or (enriched.authors if enriched else []) or []
+    author_text = ", ".join(author_names) if author_names else "Unknown"
 
     venue_normalized = enriched.venue_normalized if enriched else None
     publication_status = enriched.publication_status if enriched else None
@@ -121,7 +132,7 @@ def export_paper_to_markdown(
     lines = [
         "---",
         f"title: {yaml_string(title)}",
-        "authors: []",
+        *yaml_list(author_names),
         f"year: {paper.year if paper.year is not None else ''}",
         f"venue: {yaml_string(paper.venue)}",
         f"venue_normalized: {yaml_string(venue_normalized)}",
@@ -138,6 +149,7 @@ def export_paper_to_markdown(
         f"# {title}",
         "",
         "## Metadata",
+        f"- Authors: {author_text}",
         f"- Year: {paper.year or ''}",
         f"- Venue: {paper.venue or ''}",
         f"- DOI: {paper.doi or ''}",
