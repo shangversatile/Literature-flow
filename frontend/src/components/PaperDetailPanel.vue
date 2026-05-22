@@ -2,6 +2,8 @@
 import { ref, watch } from 'vue'
 import {
   downloadPdf,
+  exportBibtex,
+  exportMarkdown,
   extractPaper,
   fetchLatestExtraction,
   parsePdf,
@@ -114,6 +116,43 @@ function loadLatestExtraction() {
   void runAction('latest', () => fetchLatestExtraction(id), false)
 }
 
+function saveBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
+}
+
+function exportSelectedMarkdown() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction(
+    'export-markdown',
+    async () => {
+      const file = await exportMarkdown(id)
+      saveBlob(file.blob, file.filename)
+    },
+    false,
+  )
+}
+
+function exportSelectedBibtex() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction(
+    'export-bibtex',
+    async () => {
+      const file = await exportBibtex(id)
+      saveBlob(file.blob, file.filename)
+    },
+    false,
+  )
+}
+
 function stepClass(status: string) {
   if (status === 'success') return 'border-green-200 bg-green-50 text-green-800'
   if (status === 'failed') return 'border-red-200 bg-red-50 text-red-800'
@@ -205,6 +244,12 @@ function displayValue(value: string | number | null | undefined) {
         </button>
         <button class="button-secondary col-span-2" type="button" :disabled="!!loadingAction" @click="loadLatestExtraction">
           {{ loadingAction === 'latest' ? 'Loading...' : 'Load Latest Extraction' }}
+        </button>
+        <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedMarkdown">
+          {{ loadingAction === 'export-markdown' ? 'Exporting...' : 'Export Markdown' }}
+        </button>
+        <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="exportSelectedBibtex">
+          {{ loadingAction === 'export-bibtex' ? 'Exporting...' : 'Export BibTeX' }}
         </button>
       </div>
 

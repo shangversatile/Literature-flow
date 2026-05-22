@@ -47,6 +47,25 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
   return response.json() as Promise<T>
 }
 
+function filenameFromHeader(header: string | null, fallback: string) {
+  if (!header) return fallback
+  const match = header.match(/filename="?([^";]+)"?/i)
+  return match?.[1] || fallback
+}
+
+async function downloadRequest(path: string, fallbackFilename: string) {
+  const response = await fetch(`${API_BASE}${path}`)
+
+  if (!response.ok) {
+    throw await readableError(response)
+  }
+
+  return {
+    blob: await response.blob(),
+    filename: filenameFromHeader(response.headers.get('Content-Disposition'), fallbackFilename),
+  }
+}
+
 export function fetchPapers(): Promise<Paper[]> {
   return fetchEnrichedPapers()
 }
@@ -108,4 +127,12 @@ export function processPaper(
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+export function exportMarkdown(id: number): Promise<{ blob: Blob; filename: string }> {
+  return downloadRequest(`/papers/${id}/export/markdown`, `paper-${id}.md`)
+}
+
+export function exportBibtex(id: number): Promise<{ blob: Blob; filename: string }> {
+  return downloadRequest(`/papers/${id}/export/bibtex`, `paper-${id}.bib`)
 }

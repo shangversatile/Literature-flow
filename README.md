@@ -161,6 +161,21 @@ The enriched responses include `final_score`, `venue_normalized`, `venue_type`,
 `rank_note`, and compatibility fields such as `venue_rank`. These fields are
 computed at read time for Dashboard display.
 
+Single-paper export:
+
+```bash
+curl "http://127.0.0.1:8000/papers/1/export/markdown"
+curl "http://127.0.0.1:8000/papers/1/export/bibtex"
+```
+
+Markdown export includes frontmatter metadata, venue rank fields, abstract, and
+the latest LLM extraction when available. If no extraction exists yet, LitFlow
+still exports a basic literature-note template with "No extraction available
+yet." in the structured summary sections. BibTeX export produces a simple
+`@inproceedings`, `@article`, or `@misc` entry based on the detected venue type.
+The Dashboard also provides `Export Markdown` and `Export BibTeX` buttons in the
+paper detail panel.
+
 PDF text parsing and RAG-ready chunks:
 
 Run `download-pdf` first so `Paper.local_pdf_path` points to a local PDF file,

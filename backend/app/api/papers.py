@@ -3,6 +3,7 @@ import unicodedata
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import PlainTextResponse
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, select
 
@@ -38,6 +39,8 @@ from app.services.extraction.rag_qa import (
     retrieve_relevant_chunks,
 )
 from app.services.extraction.text_chunker import chunk_text_pages
+from app.services.export.bibtex_exporter import export_paper_to_bibtex
+from app.services.export.markdown_exporter import export_paper_to_markdown
 from app.services.paper_enrichment import enrich_paper_for_display
 
 
@@ -51,6 +54,26 @@ def normalize_title(title: str) -> str:
     )
     text = re.sub(r"\s+", " ", text)
     return text.strip()
+
+
+def safe_filename(text: str) -> str:
+    value = text.lower()
+    value = re.sub(r'[<>:"/\\|?*\x00-\x1f]', "", value)
+    value = re.sub(r"\s+", "-", value)
+    value = re.sub(r"[^a-z0-9._-]", "", value)
+    value = value.strip(".-_")
+    return (value or "paper")[:80]
+
+
+def latest_extraction_for_paper(
+    paper_id: int,
+    session: Session,
+) -> Extraction | None:
+    return session.exec(
+        select(Extraction)
+        .where(Extraction.paper_id == paper_id)
+        .order_by(Extraction.created_at.desc())
+    ).first()
 
 
 @router.post("", response_model=PaperRead)
@@ -97,6 +120,44 @@ def read_enriched_paper(
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
     return enrich_paper_for_display(paper, query)
+
+
+@router.get("/{paper_id}/export/markdown")
+def export_markdown(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> PlainTextResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    enriched = enrich_paper_for_display(paper)
+    latest_extraction = latest_extraction_for_paper(paper_id, session)
+    content = export_paper_to_markdown(paper, latest_extraction, enriched)
+    filename = f"{safe_filename(paper.title)}.md"
+    return PlainTextResponse(
+        content,
+        media_type="text/markdown; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
+
+
+@router.get("/{paper_id}/export/bibtex")
+def export_bibtex(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> PlainTextResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+
+    content = export_paper_to_bibtex(paper)
+    filename = f"{safe_filename(paper.title)}.bib"
+    return PlainTextResponse(
+        content,
+        media_type="application/x-bibtex; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get("/{paper_id}", response_model=PaperRead)
