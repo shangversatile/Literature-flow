@@ -35,6 +35,13 @@ def alias_keys(venue_key: str) -> list[str]:
     return []
 
 
+def is_safe_partial_key(key: str) -> bool:
+    if len(key) < 6:
+        return False
+    short_exact_only = {"sc", "www"}
+    return key not in short_exact_only
+
+
 @lru_cache(maxsize=1)
 def load_core_conference_rankings() -> dict:
     if not CORE_RANKING_CSV.exists():
@@ -47,13 +54,20 @@ def load_core_conference_rankings() -> dict:
             ranking = {
                 "acronym": (row.get("acronym") or "").strip(),
                 "name": (row.get("name") or "").strip(),
+                "aliases": (row.get("aliases") or "").strip(),
                 "rank": (row.get("rank") or "").strip(),
                 "source": (row.get("source") or "").strip(),
                 "year": (row.get("year") or "").strip(),
                 "note": (row.get("note") or "").strip(),
             }
 
-            for value in (ranking["acronym"], ranking["name"]):
+            values = [ranking["acronym"], ranking["name"]]
+            values.extend(
+                alias.strip()
+                for alias in ranking["aliases"].split(";")
+                if alias.strip()
+            )
+            for value in values:
                 key = normalize_key(value)
                 if key:
                     rankings[key] = ranking
@@ -77,12 +91,21 @@ def lookup_core_conference_rank(venue: str | None) -> dict | None:
             return alias_match
 
     for key, row in rankings.items():
-        if key and key in venue_key:
+        if key and is_safe_partial_key(key) and key in venue_key:
             return row
 
     for alias_key in alias_keys(venue_key):
         for key, row in rankings.items():
-            if key and (key in alias_key or alias_key in key):
+            if (
+                key
+                and is_safe_partial_key(key)
+                and (key in alias_key or alias_key in key)
+            ):
+                return row
+
+    if is_safe_partial_key(venue_key):
+        for key, row in rankings.items():
+            if key and is_safe_partial_key(key) and venue_key in key:
                 return row
 
     return None

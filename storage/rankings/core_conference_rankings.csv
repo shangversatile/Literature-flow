@@ -1,19 +1,29 @@
-acronym,name,rank,source,year,note
-NeurIPS,Advances in Neural Information Processing Systems,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-NIPS,Neural Information Processing Systems,A*,CORE,2026,Alias for NeurIPS/NIPS; seed CORE-style ranking
-ICML,International Conference on Machine Learning,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-ICLR,International Conference on Learning Representations,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-ACL,Association for Computational Linguistics,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-CVPR,IEEE/CVF Conference on Computer Vision and Pattern Recognition,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-ICCV,International Conference on Computer Vision,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-ECCV,European Conference on Computer Vision,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-AAAI,AAAI Conference on Artificial Intelligence,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
-IJCAI,International Joint Conference on Artificial Intelligence,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
-EMNLP,Empirical Methods in Natural Language Processing,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
-KDD,ACM SIGKDD Conference on Knowledge Discovery and Data Mining,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
-WWW,The Web Conference,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
-OSDI,USENIX Symposium on Operating Systems Design and Implementation,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-SOSP,ACM Symposium on Operating Systems Principles,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-MLSys,Conference on Machine Learning and Systems,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
-SIGMOD,ACM SIGMOD International Conference on Management of Data,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
-VLDB,International Conference on Very Large Data Bases,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+acronym,name,aliases,rank,source,year,note
+NeurIPS,Advances in Neural Information Processing Systems,Neural Information Processing Systems;Conference on Neural Information Processing Systems;NIPS,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ICML,International Conference on Machine Learning,,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ICLR,International Conference on Learning Representations,,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ACL,Association for Computational Linguistics,Annual Meeting of the Association for Computational Linguistics,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+CVPR,IEEE/CVF Conference on Computer Vision and Pattern Recognition,Computer Vision and Pattern Recognition,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ICCV,International Conference on Computer Vision,,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ECCV,European Conference on Computer Vision,,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+OSDI,USENIX Symposium on Operating Systems Design and Implementation,Operating Systems Design and Implementation,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+SOSP,ACM Symposium on Operating Systems Principles,ACM SIGOPS Symposium on Operating Systems Principles;Symposium on Operating Systems Principles,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ASPLOS,ACM International Conference on Architectural Support for Programming Languages and Operating Systems,International Conference on Architectural Support for Programming Languages and Operating Systems;Architectural Support for Programming Languages and Operating Systems,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+ISCA,International Symposium on Computer Architecture,ACM/IEEE International Symposium on Computer Architecture,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+SIGMOD,ACM SIGMOD International Conference on Management of Data,International Conference on Management of Data,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+VLDB,International Conference on Very Large Data Bases,Proceedings of the VLDB Endowment;Very Large Data Bases,A*,CORE,2026,Seed CORE-style ranking; replace with official import when available
+AAAI,AAAI Conference on Artificial Intelligence,Association for the Advancement of Artificial Intelligence,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+IJCAI,International Joint Conference on Artificial Intelligence,,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+EMNLP,Empirical Methods in Natural Language Processing,Conference on Empirical Methods in Natural Language Processing,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+NAACL,North American Chapter of the Association for Computational Linguistics,,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+KDD,ACM SIGKDD Conference on Knowledge Discovery and Data Mining,Knowledge Discovery and Data Mining,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+WWW,The Web Conference,International World Wide Web Conference;World Wide Web Conference,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+EuroSys,European Conference on Computer Systems,ACM European Conference on Computer Systems,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+NSDI,USENIX Symposium on Networked Systems Design and Implementation,Networked Systems Design and Implementation,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+USENIX ATC,USENIX Annual Technical Conference,Annual Technical Conference,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+MLSys,Conference on Machine Learning and Systems,Machine Learning and Systems,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+PLDI,ACM SIGPLAN Conference on Programming Language Design and Implementation,Programming Language Design and Implementation,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+POPL,ACM SIGPLAN Symposium on Principles of Programming Languages,Principles of Programming Languages,A,CORE,2026,Seed CORE-style ranking; replace with official import when available
+MICRO,IEEE/ACM International Symposium on Microarchitecture,International Symposium on Microarchitecture,B,CORE,2026,Seed CORE-style ranking; replace with official import when available
+HPCA,IEEE International Symposium on High-Performance Computer Architecture,International Symposium on High-Performance Computer Architecture,B,CORE,2026,Seed CORE-style ranking; replace with official import when available
+SC,International Conference for High Performance Computing Networking Storage and Analysis,Supercomputing Conference,B,CORE,2026,Seed CORE-style ranking; replace with official import when available
