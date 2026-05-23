@@ -75,16 +75,22 @@ Backend URLs:
 - `http://127.0.0.1:8000/`
 - `http://127.0.0.1:8000/health`
 
-Semantic Scholar API key:
+Environment variables:
 
-Create a `.env` file in the project root and add:
+Copy `.env.example` to `backend/.env` or to a project-root `.env`, then fill in
+your own keys:
 
-```bash
-S2_API_KEY=your_semantic_scholar_api_key
-UNPAYWALL_EMAIL=your_email@example.com
+```bat
+copy .env.example backend\.env
 ```
 
-Do not commit `.env`. It is already listed in `.gitignore`.
+or:
+
+```bat
+copy .env.example .env
+```
+
+Do not commit a real `.env`. It is already listed in `.gitignore`.
 
 Semantic Scholar search API:
 
