@@ -262,6 +262,24 @@ The enriched responses include `final_score`, `foundation_score`,
 `rank_note`, and compatibility fields such as `venue_rank`. These fields are
 computed at read time for Dashboard display.
 
+Refresh ranking and scoring display:
+
+When local venue aliases, journal rankings, or scoring rules change, saved
+papers can be refreshed without changing the database schema. LitFlow computes
+the latest enrichment at read time, so these endpoints return the current
+venue/rank/score view and the Dashboard reloads `/papers/enriched`.
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/1/refresh-enrichment"
+curl -X POST "http://127.0.0.1:8000/papers/refresh-enrichment-batch" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"paper_ids\":null}"
+```
+
+In the Dashboard, use `Refresh Rank & Score` in the paper detail panel for one
+paper, or `Refresh All Rankings` in the top tool bar after updating ranking CSVs
+or scoring code.
+
 LitFlow also saves paper authors from search results. Authors are stored in
 separate author/link records and deduplicated with a simple normalized-name
 rule: lowercase, remove punctuation, and collapse whitespace. LitFlow does not
