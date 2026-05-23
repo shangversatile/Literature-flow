@@ -19,6 +19,11 @@ from app.schemas.batch import (
     BatchProcessResponse,
 )
 from app.schemas.extraction import ExtractRequest, ExtractResponse, ExtractionRead
+from app.schemas.maintenance import (
+    RefreshEnrichmentBatchRequest,
+    RefreshEnrichmentBatchResponse,
+    RefreshEnrichmentResponse,
+)
 from app.schemas.paper import PaperCreate, PaperEnrichedRead, PaperRead, PaperUpdate
 from app.schemas.paper_asset import ExtractAssetsResponse, PaperAssetRead
 from app.schemas.paper_text import PaperChunkRead, PaperTextRead, ParsePdfResponse
@@ -91,6 +96,29 @@ def assets_for_paper(paper_id: int, session: Session) -> list[PaperAsset]:
 
 def get_paper_topic_names(session: Session, paper_id: int) -> list[str]:
     return [topic.name for topic in get_paper_topics(session, paper_id)]
+
+
+def refresh_enrichment_response(
+    paper: Paper,
+    session: Session,
+) -> RefreshEnrichmentResponse:
+    if paper.id is None:
+        raise ValueError("Paper has no id")
+    enriched = enrich_paper_for_display(
+        paper,
+        authors=get_paper_author_names(session, paper.id),
+        topics=get_paper_topic_names(session, paper.id),
+    )
+    return RefreshEnrichmentResponse(
+        paper_id=paper.id,
+        title=paper.title,
+        old_venue=paper.venue,
+        venue_normalized=enriched.venue_normalized,
+        rank_value=enriched.rank_value,
+        rank_source=enriched.rank_source,
+        final_score=enriched.final_score,
+        message="Enrichment recalculated from current venue aliases, rankings, and scoring rules.",
+    )
 
 
 @router.post("", response_model=PaperRead)
@@ -410,6 +438,66 @@ async def process_papers_batch(
     )
 
 
+@router.post(
+    "/refresh-enrichment-batch",
+    response_model=RefreshEnrichmentBatchResponse,
+    summary="Refresh Enrichment Batch",
+)
+def refresh_enrichment_batch(
+    request: RefreshEnrichmentBatchRequest | None = None,
+    session: Session = Depends(get_session),
+) -> RefreshEnrichmentBatchResponse:
+    paper_ids = request.paper_ids if request and request.paper_ids else None
+    if paper_ids:
+        papers = [session.get(Paper, paper_id) for paper_id in paper_ids]
+    else:
+        papers = session.exec(select(Paper)).all()
+
+    results: list[RefreshEnrichmentResponse] = []
+    failed = 0
+    for index, paper in enumerate(papers):
+        if paper is None:
+            failed += 1
+            missing_id = paper_ids[index] if paper_ids and index < len(paper_ids) else -1
+            results.append(
+                RefreshEnrichmentResponse(
+                    paper_id=missing_id,
+                    title="",
+                    old_venue=None,
+                    venue_normalized=None,
+                    rank_value=None,
+                    rank_source=None,
+                    final_score=None,
+                    message="Paper not found.",
+                )
+            )
+            continue
+
+        try:
+            results.append(refresh_enrichment_response(paper, session))
+        except Exception as exc:
+            failed += 1
+            results.append(
+                RefreshEnrichmentResponse(
+                    paper_id=paper.id or -1,
+                    title=paper.title,
+                    old_venue=paper.venue,
+                    venue_normalized=None,
+                    rank_value=None,
+                    rank_source=None,
+                    final_score=None,
+                    message=f"Refresh failed: {exc}",
+                )
+            )
+
+    return RefreshEnrichmentBatchResponse(
+        total=len(results),
+        succeeded=len(results) - failed,
+        failed=failed,
+        results=results,
+    )
+
+
 @router.get("/{paper_id}", response_model=PaperRead)
 def read_paper(
     paper_id: int,
@@ -419,6 +507,21 @@ def read_paper(
     if paper is None:
         raise HTTPException(status_code=404, detail="Paper not found")
     return paper
+
+
+@router.post(
+    "/{paper_id}/refresh-enrichment",
+    response_model=RefreshEnrichmentResponse,
+    summary="Refresh Paper Enrichment",
+)
+def refresh_paper_enrichment(
+    paper_id: int,
+    session: Session = Depends(get_session),
+) -> RefreshEnrichmentResponse:
+    paper = session.get(Paper, paper_id)
+    if paper is None:
+        raise HTTPException(status_code=404, detail="Paper not found")
+    return refresh_enrichment_response(paper, session)
 
 
 @router.post(
