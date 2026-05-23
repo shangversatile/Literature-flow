@@ -60,9 +60,9 @@ async function ask() {
           <span class="mb-1 block text-xs text-gray-500">top_k</span>
           <input v-model.number="topK" class="input" max="10" min="1" type="number" />
         </label>
-        <label class="block">
-          <span class="mb-1 block text-xs text-gray-500">mode</span>
-          <input v-model="mode" class="input" disabled type="text" />
+        <label class="mode-control text-xs text-gray-500">
+          <span>mode</span>
+          <input v-model="mode" class="mode-select" disabled type="text" />
         </label>
         <button class="button-primary h-9 px-4" type="button" :disabled="loading || !question.trim()" @click="ask">
           {{ loading ? 'Asking...' : 'Ask' }}

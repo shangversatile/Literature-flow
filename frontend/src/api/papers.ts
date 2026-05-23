@@ -1,6 +1,8 @@
 import type {
   AskPayload,
   AskResponse,
+  BatchProcessRequest,
+  BatchProcessResponse,
   ExtractAssetsResponse,
   ExtractPayload,
   Extraction,
@@ -135,6 +137,13 @@ export function processPaper(
   payload: ProcessPaperRequest,
 ): Promise<ProcessPaperResponse> {
   return request<ProcessPaperResponse>(`/papers/${id}/process`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+}
+
+export function processBatch(payload: BatchProcessRequest): Promise<BatchProcessResponse> {
+  return request<BatchProcessResponse>('/papers/process-batch', {
     method: 'POST',
     body: JSON.stringify(payload),
   })

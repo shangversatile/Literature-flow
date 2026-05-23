@@ -116,6 +116,85 @@ button:disabled {
   box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
 }
 
+.mode-select {
+  width: 150px;
+  min-width: 150px;
+  max-width: 150px;
+  flex: 0 0 150px;
+  flex-shrink: 0;
+  box-sizing: border-box;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  color: #111827;
+  outline: none;
+  padding: 8px 36px 8px 12px;
+  white-space: nowrap;
+  text-overflow: clip;
+  overflow: visible;
+}
+
+.mode-select:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
+}
+
+.mode-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  min-width: max-content;
+}
+
+.batch-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  min-height: 3rem;
+  border-bottom: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 0.5rem 0.75rem;
+}
+
+.batch-mode-banner {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.batch-panel {
+  flex: 0 0 auto;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fbfbfc;
+  padding: 0.625rem 0.75rem;
+}
+
+.batch-result-panel {
+  margin-top: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  padding: 0.625rem;
+  font-size: 0.75rem;
+  color: #374151;
+}
+
+.batch-result-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-bottom: 0.375rem;
+}
+
 .table-sort-button {
   border-radius: 7px;
   padding: 0.125rem 0.25rem;

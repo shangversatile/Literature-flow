@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { fetchPapers } from './api/papers'
 import { fetchTopics, seedDefaultTopics } from './api/topics'
+import BatchProcessPanel from './components/BatchProcessPanel.vue'
 import FilterSidebar from './components/FilterSidebar.vue'
 import LibraryAskBox from './components/LibraryAskBox.vue'
 import PaperDetailPanel from './components/PaperDetailPanel.vue'
@@ -14,6 +15,8 @@ import { computeReadingPriority } from './utils/paperQuality'
 const papers = ref<Paper[]>([])
 const topics = ref<ResearchTopic[]>([])
 const selectedPaperId = ref<number | null>(null)
+const batchMode = ref(false)
+const selectedPaperIds = ref<number[]>([])
 const stageFilter = ref('ALL')
 const capabilityFilter = ref('ALL')
 const priorityFilter = ref('ALL')
@@ -71,6 +74,8 @@ async function loadPapers() {
     ) {
       selectedPaperId.value = null
     }
+    const existingIds = new Set(papers.value.map((paper) => paper.id))
+    selectedPaperIds.value = selectedPaperIds.value.filter((id) => existingIds.has(id))
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Failed to load papers'
   } finally {
@@ -126,6 +131,23 @@ function selectPaper(paper: Paper) {
   selectedPaperId.value = paper.id
 }
 
+function updateSelectedPaperIds(paperIds: number[]) {
+  selectedPaperIds.value = paperIds
+}
+
+function enterBatchMode() {
+  batchMode.value = true
+}
+
+function exitBatchMode() {
+  batchMode.value = false
+  selectedPaperIds.value = []
+}
+
+function clearBatchSelection() {
+  selectedPaperIds.value = []
+}
+
 async function refreshLibrary() {
   await Promise.all([loadPapers(), loadTopics()])
 }
@@ -179,13 +201,32 @@ onMounted(refreshLibrary)
           Search and save papers to build your library.
         </div>
 
-        <PaperTable
-          v-else
-          class="min-h-0 flex-1"
-          :papers="filteredPapers"
-          :selected-paper-id="selectedPaperId"
-          @select="selectPaper"
-        />
+        <template v-else>
+          <div class="batch-toolbar">
+            <button v-if="!batchMode" class="button-secondary" type="button" @click="enterBatchMode">
+              Enter Batch Mode
+            </button>
+            <template v-else>
+              <span class="batch-mode-banner">Batch Mode active</span>
+              <span class="text-sm font-medium text-gray-700">Selected: {{ selectedPaperIds.length }}</span>
+              <button class="button-ghost" type="button" :disabled="selectedPaperIds.length === 0" @click="clearBatchSelection">
+                Clear Selection
+              </button>
+              <button class="button-secondary" type="button" @click="exitBatchMode">Exit Batch Mode</button>
+            </template>
+          </div>
+
+          <BatchProcessPanel v-if="batchMode" :selected-paper-ids="selectedPaperIds" @refresh="refreshLibrary" />
+          <PaperTable
+            class="min-h-0 flex-1"
+            :papers="filteredPapers"
+            :batch-mode="batchMode"
+            :selected-paper-id="selectedPaperId"
+            :selected-paper-ids="selectedPaperIds"
+            @select="selectPaper"
+            @selected-change="updateSelectedPaperIds"
+          />
+        </template>
       </section>
 
       <aside class="flex min-w-0 flex-col gap-4 overflow-auto">

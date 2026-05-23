@@ -5,11 +5,14 @@ import { computeReadingPriority, priorityBadgeClass } from '../utils/paperQualit
 
 const props = defineProps<{
   papers: Paper[]
+  batchMode: boolean
   selectedPaperId: number | null
+  selectedPaperIds: number[]
 }>()
 
 const emit = defineEmits<{
   select: [paper: Paper]
+  'selected-change': [paperIds: number[]]
 }>()
 
 type SortKey = 'year' | 'final_score'
@@ -24,6 +27,15 @@ const sortedPapers = computed(() => {
     const result = aValue - bValue
     return sortDirection.value === 'asc' ? result : -result
   })
+})
+
+const selectedVisibleCount = computed(() => {
+  const visibleIds = new Set(sortedPapers.value.map((paper) => paper.id))
+  return props.selectedPaperIds.filter((id) => visibleIds.has(id)).length
+})
+
+const allVisibleSelected = computed(() => {
+  return sortedPapers.value.length > 0 && selectedVisibleCount.value === sortedPapers.value.length
 })
 
 function setSort(key: SortKey) {
@@ -71,6 +83,34 @@ function displayAuthors(paper: Paper) {
   return `${authors.slice(0, 2).join(', ')} et al.`
 }
 
+function isSelected(paperId: number) {
+  return props.selectedPaperIds.includes(paperId)
+}
+
+function togglePaper(paperId: number) {
+  if (isSelected(paperId)) {
+    emit(
+      'selected-change',
+      props.selectedPaperIds.filter((id) => id !== paperId),
+    )
+    return
+  }
+  emit('selected-change', [...props.selectedPaperIds, paperId])
+}
+
+function toggleAllVisible() {
+  const visibleIds = sortedPapers.value.map((paper) => paper.id)
+  if (allVisibleSelected.value) {
+    const visibleSet = new Set(visibleIds)
+    emit(
+      'selected-change',
+      props.selectedPaperIds.filter((id) => !visibleSet.has(id)),
+    )
+    return
+  }
+  emit('selected-change', Array.from(new Set([...props.selectedPaperIds, ...visibleIds])))
+}
+
 </script>
 
 <template>
@@ -78,6 +118,15 @@ function displayAuthors(paper: Paper) {
     <table class="compact-table">
       <thead>
         <tr>
+          <th v-if="batchMode" class="w-10 px-3 py-2 font-medium">
+            <input
+              type="checkbox"
+              :checked="allVisibleSelected"
+              :disabled="sortedPapers.length === 0"
+              @click.stop
+              @change="toggleAllVisible"
+            />
+          </th>
           <th class="title-cell px-3 py-2 font-medium">Title</th>
           <th class="authors-cell px-3 py-2 font-medium">Authors</th>
           <th class="w-[8%] px-3 py-2 font-medium">
@@ -101,9 +150,20 @@ function displayAuthors(paper: Paper) {
           v-for="paper in sortedPapers"
           :key="paper.id"
           class="cursor-pointer"
-          :class="{ 'bg-blue-50 hover:bg-blue-50': paper.id === selectedPaperId }"
+          :class="{
+            'bg-slate-50': batchMode && isSelected(paper.id) && paper.id !== selectedPaperId,
+            'bg-blue-50 hover:bg-blue-50': paper.id === selectedPaperId,
+          }"
           @click="emit('select', paper)"
         >
+          <td v-if="batchMode" class="w-10 px-3 py-2 align-top">
+            <input
+              type="checkbox"
+              :checked="isSelected(paper.id)"
+              @click.stop
+              @change="togglePaper(paper.id)"
+            />
+          </td>
           <td class="title-cell px-3 py-2 align-top">
             <div class="line-clamp-2 font-semibold leading-5 text-gray-950" :title="paper.title">{{ paper.title }}</div>
             <div v-if="paper.doi" class="truncate text-xs text-gray-400">{{ paper.doi }}</div>

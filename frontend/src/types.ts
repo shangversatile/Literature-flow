@@ -183,6 +183,8 @@ export interface ProcessPaperRequest {
   download_pdf: boolean
   parse_pdf: boolean
   extract: boolean
+  extract_assets?: boolean
+  save_workspace?: boolean
   extract_mode: 'mock' | 'openai'
   user_topic?: string | null
   max_chunks: number
@@ -198,6 +200,36 @@ export interface ProcessPaperResponse {
   paper_id: number
   steps: ProcessStepResult[]
   final_status: string
+}
+
+export interface BatchProcessRequest {
+  paper_ids: number[]
+  resolve_pdf: boolean
+  download_pdf: boolean
+  parse_pdf: boolean
+  extract: boolean
+  extract_assets: boolean
+  save_workspace: boolean
+  extract_mode: 'mock' | 'openai'
+  user_topic?: string | null
+  max_chunks: number
+}
+
+export interface BatchPaperResult {
+  paper_id: number
+  title: string | null
+  status: string
+  final_status: string | null
+  steps: ProcessStepResult[]
+  error: string | null
+}
+
+export interface BatchProcessResponse {
+  total: number
+  succeeded: number
+  failed: number
+  skipped: number
+  results: BatchPaperResult[]
 }
 
 export interface SearchSaveResponse {

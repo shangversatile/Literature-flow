@@ -68,9 +68,9 @@ function shortText(text: string) {
         class="input min-h-20 resize-y"
         placeholder="What are the main bottlenecks in LLM inference systems?"
       />
-      <label class="block">
-        <span class="mb-1 block text-xs text-gray-500">mode</span>
-        <select v-model="mode" class="input">
+      <label class="mode-control text-xs text-gray-500">
+        <span>mode</span>
+        <select v-model="mode" class="mode-select">
           <option value="openai">openai</option>
           <option value="mock">mock</option>
         </select>

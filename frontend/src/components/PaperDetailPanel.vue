@@ -450,11 +450,11 @@ function formatSummaryValue(value: unknown) {
           <div class="action-group">
             <div class="mb-3">
               <h4>Primary Actions</h4>
-              <label class="mt-2 block">
-                <span class="mb-1 block text-xs font-medium text-slate-500">Extraction Mode</span>
-                <select v-model="extractionMode" class="input h-9">
-                  <option value="openai">openai - real LLM extraction</option>
-                  <option value="mock">mock - workflow test, no LLM call</option>
+              <label class="mode-control mt-2 text-xs font-medium text-slate-500">
+                <span>Extraction Mode</span>
+                <select v-model="extractionMode" class="mode-select">
+                  <option value="openai">openai</option>
+                  <option value="mock">mock</option>
                 </select>
               </label>
             </div>
