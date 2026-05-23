@@ -8,6 +8,7 @@ import LibraryAskBox from './components/LibraryAskBox.vue'
 import PaperDetailPanel from './components/PaperDetailPanel.vue'
 import PaperTable from './components/PaperTable.vue'
 import RagAskBox from './components/RagAskBox.vue'
+import SearchCampaignPanel from './components/SearchCampaignPanel.vue'
 import SearchPanel from './components/SearchPanel.vue'
 import type { Paper, ResearchTopic } from './types'
 import { computeReadingPriority } from './utils/paperQuality'
@@ -177,6 +178,9 @@ onMounted(refreshLibrary)
 
     <div class="shrink-0 px-4 pt-4">
       <SearchPanel @refresh="loadPapers" />
+    </div>
+    <div class="shrink-0 px-4 pt-3">
+      <SearchCampaignPanel @refresh="loadPapers" />
     </div>
     <div class="shrink-0 px-4 pt-3">
       <LibraryAskBox :topics="topics" />

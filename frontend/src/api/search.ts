@@ -1,4 +1,10 @@
-import type { PaperSearchResult, SearchSaveResponse } from '../types'
+import type {
+  PaperSearchResult,
+  RunCampaignRequest,
+  RunCampaignResponse,
+  SearchCampaign,
+  SearchSaveResponse,
+} from '../types'
 
 const API_BASE = 'http://127.0.0.1:8000'
 
@@ -56,5 +62,16 @@ export function saveSelectedPapers(
   return request<SearchSaveResponse>(`${API_BASE}/search/save-selected`, {
     method: 'POST',
     body: JSON.stringify({ query, papers }),
+  })
+}
+
+export function fetchSearchCampaigns(): Promise<SearchCampaign[]> {
+  return request<SearchCampaign[]>(`${API_BASE}/search/campaigns`)
+}
+
+export function runSearchCampaign(payload: RunCampaignRequest): Promise<RunCampaignResponse> {
+  return request<RunCampaignResponse>(`${API_BASE}/search/campaigns/run`, {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
