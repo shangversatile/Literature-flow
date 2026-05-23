@@ -96,6 +96,16 @@ export function updatePaper(id: number, payload: PaperUpdatePayload): Promise<Pa
   })
 }
 
+export function deletePaper(
+  id: number,
+  deleteFiles = false,
+): Promise<{ paper_id: number; deleted: boolean; delete_files: boolean; message: string }> {
+  return request<{ paper_id: number; deleted: boolean; delete_files: boolean; message: string }>(
+    `/papers/${id}?delete_files=${deleteFiles}`,
+    { method: 'DELETE' },
+  )
+}
+
 export function resolvePdf(id: number): Promise<Paper> {
   return request<Paper>(`/papers/${id}/resolve-pdf`, { method: 'POST' })
 }

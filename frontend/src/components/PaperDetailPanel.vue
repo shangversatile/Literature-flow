@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import {
+  deletePaper,
   downloadPdf,
   exportBibtex,
   exportMarkdown,
@@ -37,10 +38,12 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   refresh: []
+  deleted: [message?: string]
 }>()
 
 const loadingAction = ref<string | null>(null)
 const errorMessage = ref('')
+const successMessage = ref('')
 const latestExtraction = ref<Extraction | null>(null)
 const processResult = ref<ProcessPaperResponse | null>(null)
 const refreshResult = ref<RefreshEnrichmentResponse | null>(null)
@@ -52,6 +55,7 @@ const markdownPreview = ref('')
 const markdownPreviewLoaded = ref(false)
 const extractionMode = ref<'mock' | 'openai'>('openai')
 const topicInput = ref('')
+const deleteLocalFiles = ref(false)
 
 const extractionData = computed<Record<string, unknown> | null>(() => {
   if (!latestExtraction.value) return null
@@ -99,6 +103,7 @@ watch(
   () => props.paper?.id,
   () => {
     errorMessage.value = ''
+    successMessage.value = ''
     latestExtraction.value = null
     processResult.value = null
     refreshResult.value = null
@@ -110,6 +115,7 @@ watch(
     markdownPreview.value = ''
     markdownPreviewLoaded.value = false
     topicInput.value = props.paper?.topics?.join(', ') || ''
+    deleteLocalFiles.value = false
   },
   { immediate: true },
 )
@@ -119,6 +125,7 @@ async function runAction(label: string, action: () => Promise<unknown>, shouldRe
 
   loadingAction.value = label
   errorMessage.value = ''
+  successMessage.value = ''
   try {
     const result = await action()
     if (label === 'latest') {
@@ -149,6 +156,29 @@ async function runAction(label: string, action: () => Promise<unknown>, shouldRe
     if (label === 'preview-markdown') {
       markdownPreviewLoaded.value = false
     }
+  } finally {
+    loadingAction.value = null
+  }
+}
+
+async function deleteSelectedPaper() {
+  const id = props.paper?.id
+  if (!id) return
+
+  const confirmed = window.confirm(
+    '删除数据库记录后，该论文会从 Library 中消失。\n\n如果勾选 Also delete local files，也会删除本地 PDF/assets/workspace。\n\n确定要删除这篇论文吗？',
+  )
+  if (!confirmed) return
+
+  loadingAction.value = 'delete-paper'
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    const result = await deletePaper(id, deleteLocalFiles.value)
+    successMessage.value = result.message || 'Paper deleted.'
+    emit('deleted', successMessage.value)
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to delete paper'
   } finally {
     loadingAction.value = null
   }
@@ -550,6 +580,32 @@ function formatSummaryValue(value: unknown) {
         <p v-if="refreshResult" class="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
           {{ refreshResult.message }} Rank {{ refreshResult.rank_value || '-' }}, score {{ displayValue(refreshResult.final_score) }}.
         </p>
+        <p v-if="successMessage" class="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+          {{ successMessage }}
+        </p>
+      </section>
+
+      <section class="panel-card">
+        <details>
+          <summary class="cursor-pointer text-xs font-semibold text-gray-500">Danger Zone</summary>
+          <div class="mt-3 rounded-lg border border-red-100 bg-red-50/40 p-3">
+            <label class="flex items-start gap-2 text-xs leading-5 text-gray-600">
+              <input v-model="deleteLocalFiles" class="mt-1" type="checkbox" />
+              <span>Also delete local files</span>
+            </label>
+            <p class="mt-2 text-xs leading-5 text-gray-500">
+              删除数据库记录后，该论文会从 Library 中消失。如果勾选 Also delete local files，也会删除本地 PDF/assets/workspace。
+            </p>
+            <button
+              class="button-danger mt-3"
+              type="button"
+              :disabled="!!loadingAction"
+              @click="deleteSelectedPaper"
+            >
+              {{ loadingAction === 'delete-paper' ? 'Deleting...' : 'Delete Paper' }}
+            </button>
+          </div>
+        </details>
       </section>
 
       <section v-if="processResult" class="panel-card">

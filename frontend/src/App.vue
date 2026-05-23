@@ -157,6 +157,12 @@ async function refreshLibrary() {
   await Promise.all([loadPapers(), loadTopics()])
 }
 
+async function handlePaperDeleted(message?: string) {
+  selectedPaperId.value = null
+  maintenanceMessage.value = message || 'Paper deleted.'
+  await loadPapers()
+}
+
 async function refreshAllRankings() {
   refreshingRankings.value = true
   maintenanceMessage.value = ''
@@ -285,7 +291,7 @@ onMounted(refreshLibrary)
       </section>
 
       <aside class="detail-sidebar flex min-w-0 flex-col gap-4 overflow-auto">
-        <PaperDetailPanel :paper="selectedPaper" :topics="topics" @refresh="refreshLibrary" />
+        <PaperDetailPanel :paper="selectedPaper" :topics="topics" @refresh="refreshLibrary" @deleted="handlePaperDeleted" />
         <RagAskBox :paper-id="selectedPaperId" />
       </aside>
     </div>
