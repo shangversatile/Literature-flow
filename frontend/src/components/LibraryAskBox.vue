@@ -14,6 +14,7 @@ const topic = ref('ALL')
 const loading = ref(false)
 const errorMessage = ref('')
 const response = ref<LibraryAskResponse | null>(null)
+const resultVisible = ref(false)
 
 async function ask() {
   const cleanQuestion = question.value.trim()
@@ -22,6 +23,7 @@ async function ask() {
   loading.value = true
   errorMessage.value = ''
   response.value = null
+  resultVisible.value = false
   try {
     response.value = await askLibrary({
       question: cleanQuestion,
@@ -29,11 +31,18 @@ async function ask() {
       top_k: topK.value,
       topic: topic.value === 'ALL' ? null : topic.value,
     })
+    resultVisible.value = true
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Request failed'
   } finally {
     loading.value = false
   }
+}
+
+function clearAnswer() {
+  response.value = null
+  errorMessage.value = ''
+  resultVisible.value = false
 }
 
 function shortText(text: string) {
@@ -83,7 +92,18 @@ function shortText(text: string) {
       {{ errorMessage }}
     </p>
 
-    <div v-if="response" class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+    <div v-if="response" class="mt-4">
+      <div class="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap gap-2">
+          <button class="button-ghost" type="button" @click="clearAnswer">Clear Answer</button>
+          <button class="button-ghost" type="button" @click="resultVisible = !resultVisible">
+            {{ resultVisible ? 'Hide Results' : 'Show Results' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="response && resultVisible" class="mt-2 grid gap-4 xl:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
       <div>
         <h3 class="mb-1 text-xs font-medium uppercase tracking-normal text-gray-500">Answer</h3>
         <p class="max-h-64 overflow-auto whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm leading-6 text-gray-800">
