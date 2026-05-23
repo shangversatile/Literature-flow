@@ -75,7 +75,7 @@ watch(
 </script>
 
 <template>
-  <aside class="workspace-card flex h-full max-h-[calc(100vh-120px)] shrink-0 flex-col overflow-y-auto pr-1 p-3">
+  <aside class="workspace-card flex h-full min-h-0 shrink-0 flex-col overflow-y-auto pr-1 p-3">
     <div class="mb-4 flex items-center justify-between">
       <h2 class="text-xs font-semibold uppercase tracking-normal text-gray-500">Library Filters</h2>
       <button class="button-secondary" type="button" @click="emit('refresh')">Refresh</button>

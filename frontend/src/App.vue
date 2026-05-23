@@ -18,6 +18,8 @@ const topics = ref<ResearchTopic[]>([])
 const selectedPaperId = ref<number | null>(null)
 const batchMode = ref(false)
 const selectedPaperIds = ref<number[]>([])
+const activeTool = ref<'search' | 'campaign' | 'ask-library'>('search')
+const toolsCollapsed = ref(false)
 const stageFilter = ref('ALL')
 const capabilityFilter = ref('ALL')
 const priorityFilter = ref('ALL')
@@ -158,7 +160,7 @@ onMounted(refreshLibrary)
 
 <template>
   <main class="app-shell flex h-screen flex-col overflow-hidden">
-    <header class="shrink-0 border-b border-gray-200 bg-white px-6 py-4">
+    <header class="app-header shrink-0 border-b border-gray-200 bg-white px-6 py-3">
       <div class="flex items-center justify-between gap-4">
         <div>
           <h1 class="text-lg font-semibold tracking-tight text-gray-950">LitFlow</h1>
@@ -176,17 +178,45 @@ onMounted(refreshLibrary)
       </div>
     </header>
 
-    <div class="shrink-0 px-4 pt-4">
-      <SearchPanel @refresh="loadPapers" />
-    </div>
-    <div class="shrink-0 px-4 pt-3">
-      <SearchCampaignPanel @refresh="loadPapers" />
-    </div>
-    <div class="shrink-0 px-4 pt-3">
-      <LibraryAskBox :topics="topics" />
-    </div>
+    <section class="tool-dock">
+      <div class="tool-tabs">
+        <button
+          class="tool-tab"
+          type="button"
+          :class="{ 'tool-tab-active': activeTool === 'search' }"
+          @click="activeTool = 'search'; toolsCollapsed = false"
+        >
+          Search
+        </button>
+        <button
+          class="tool-tab"
+          type="button"
+          :class="{ 'tool-tab-active': activeTool === 'campaign' }"
+          @click="activeTool = 'campaign'; toolsCollapsed = false"
+        >
+          Campaign
+        </button>
+        <button
+          class="tool-tab"
+          type="button"
+          :class="{ 'tool-tab-active': activeTool === 'ask-library' }"
+          @click="activeTool = 'ask-library'; toolsCollapsed = false"
+        >
+          Ask Library
+        </button>
+        <button class="button-ghost ml-auto" type="button" @click="toolsCollapsed = !toolsCollapsed">
+          {{ toolsCollapsed ? 'Expand Tools' : 'Collapse Tools' }}
+        </button>
+      </div>
 
-    <div class="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_480px] gap-4 overflow-hidden p-4">
+      <div v-if="!toolsCollapsed" class="tool-panel">
+        <SearchPanel v-if="activeTool === 'search'" @refresh="loadPapers" />
+        <SearchCampaignPanel v-else-if="activeTool === 'campaign'" @refresh="loadPapers" />
+        <LibraryAskBox v-else :topics="topics" />
+      </div>
+    </section>
+
+    <div class="main-workspace">
       <FilterSidebar
         :total-papers="papers.length"
         :llm-extracted-count="llmExtractedCount"
@@ -233,7 +263,7 @@ onMounted(refreshLibrary)
         </template>
       </section>
 
-      <aside class="flex min-w-0 flex-col gap-4 overflow-auto">
+      <aside class="detail-sidebar flex min-w-0 flex-col gap-4 overflow-auto">
         <PaperDetailPanel :paper="selectedPaper" :topics="topics" @refresh="refreshLibrary" />
         <RagAskBox :paper-id="selectedPaperId" />
       </aside>
