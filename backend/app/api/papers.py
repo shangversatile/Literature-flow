@@ -49,6 +49,7 @@ from app.services.export.filename_utils import build_export_filename
 from app.services.export.markdown_exporter import export_paper_to_markdown
 from app.services.export.workspace_exporter import save_paper_workspace, workspace_info
 from app.services.paper_enrichment import enrich_paper_for_display
+from app.services.topics import get_paper_topics
 
 
 router = APIRouter(prefix="/papers", tags=["papers"])
@@ -80,6 +81,10 @@ def assets_for_paper(paper_id: int, session: Session) -> list[PaperAsset]:
         .where(PaperAsset.paper_id == paper_id)
         .order_by(PaperAsset.asset_type, PaperAsset.page_number, PaperAsset.asset_index)
     ).all()
+
+
+def get_paper_topic_names(session: Session, paper_id: int) -> list[str]:
+    return [topic.name for topic in get_paper_topics(session, paper_id)]
 
 
 @router.post("", response_model=PaperRead)
@@ -116,6 +121,7 @@ def read_enriched_papers(
             paper,
             query,
             get_paper_author_names(session, paper.id) if paper.id is not None else [],
+            get_paper_topic_names(session, paper.id) if paper.id is not None else [],
         )
         for paper in papers
     ]
@@ -136,6 +142,7 @@ def read_enriched_paper(
         paper,
         query,
         get_paper_author_names(session, paper_id),
+        get_paper_topic_names(session, paper_id),
     )
 
 
@@ -149,7 +156,11 @@ def export_markdown(
         raise HTTPException(status_code=404, detail="Paper not found")
 
     authors = get_paper_author_names(session, paper_id)
-    enriched = enrich_paper_for_display(paper, authors=authors)
+    enriched = enrich_paper_for_display(
+        paper,
+        authors=authors,
+        topics=get_paper_topic_names(session, paper_id),
+    )
     latest_extraction = latest_extraction_for_paper(paper_id, session)
     assets = assets_for_paper(paper_id, session)
     content = export_paper_to_markdown(paper, latest_extraction, enriched, assets, authors)
@@ -171,7 +182,11 @@ def save_paper_to_workspace(
         raise HTTPException(status_code=404, detail="Paper not found")
 
     authors = get_paper_author_names(session, paper_id)
-    enriched = enrich_paper_for_display(paper, authors=authors)
+    enriched = enrich_paper_for_display(
+        paper,
+        authors=authors,
+        topics=get_paper_topic_names(session, paper_id),
+    )
     latest_extraction = latest_extraction_for_paper(paper_id, session)
     markdown_text = export_paper_to_markdown(
         paper,
@@ -196,7 +211,11 @@ def read_paper_workspace(
         raise HTTPException(status_code=404, detail="Paper not found")
 
     authors = get_paper_author_names(session, paper_id)
-    enriched = enrich_paper_for_display(paper, authors=authors)
+    enriched = enrich_paper_for_display(
+        paper,
+        authors=authors,
+        topics=get_paper_topic_names(session, paper_id),
+    )
     return WorkspaceInfoResponse.model_validate(workspace_info(paper, enriched))
 
 
@@ -210,7 +229,11 @@ def export_bibtex(
         raise HTTPException(status_code=404, detail="Paper not found")
 
     authors = get_paper_author_names(session, paper_id)
-    enriched = enrich_paper_for_display(paper, authors=authors)
+    enriched = enrich_paper_for_display(
+        paper,
+        authors=authors,
+        topics=get_paper_topic_names(session, paper_id),
+    )
     content = export_paper_to_bibtex(paper, authors)
     filename = build_export_filename(paper, enriched, "bib")
     return PlainTextResponse(
