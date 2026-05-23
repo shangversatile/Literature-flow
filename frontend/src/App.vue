@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { fetchPapers } from './api/papers'
 import { fetchTopics, seedDefaultTopics } from './api/topics'
 import FilterSidebar from './components/FilterSidebar.vue'
+import LibraryAskBox from './components/LibraryAskBox.vue'
 import PaperDetailPanel from './components/PaperDetailPanel.vue'
 import PaperTable from './components/PaperTable.vue'
 import RagAskBox from './components/RagAskBox.vue'
@@ -154,6 +155,9 @@ onMounted(refreshLibrary)
 
     <div class="shrink-0 px-4 pt-4">
       <SearchPanel @refresh="loadPapers" />
+    </div>
+    <div class="shrink-0 px-4 pt-3">
+      <LibraryAskBox :topics="topics" />
     </div>
 
     <div class="grid min-h-0 flex-1 grid-cols-[280px_minmax(0,1fr)_480px] gap-4 overflow-hidden p-4">

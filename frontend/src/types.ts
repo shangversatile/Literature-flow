@@ -46,6 +46,37 @@ export interface PaperTopicsResponse {
   topics: ResearchTopic[]
 }
 
+export interface LibraryAskPayload {
+  question: string
+  mode: 'mock' | 'openai'
+  top_k: number
+  topic?: string | null
+}
+
+export interface LibraryEvidenceChunk {
+  paper_id: number
+  paper_title: string
+  paper_year: number | null
+  paper_venue: string | null
+  chunk_index: number
+  text: string
+  score: number
+  page_start: number | null
+  page_end: number | null
+  section_title: string | null
+  matched_terms: string[]
+  retrieval_method: string
+}
+
+export interface LibraryAskResponse {
+  question: string
+  mode: string
+  topic: string | null
+  answer: string
+  evidence_chunks: LibraryEvidenceChunk[]
+  evidence_count: number
+}
+
 export interface ReadingPriority {
   label: string
   level: string

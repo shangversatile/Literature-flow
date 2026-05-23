@@ -396,6 +396,45 @@ curl -X POST "http://127.0.0.1:8000/papers/1/ask" ^
   -d "{\"question\":\"What is the main systems optimization in this paper?\",\"mode\":\"openai\",\"top_k\":5}"
 ```
 
+Cross-paper library RAG:
+
+LitFlow also supports asking questions across the whole saved paper library:
+
+- Endpoint: `POST /ask/library`
+- Retrieval: BM25-like scoring over saved `PaperChunk` records
+- Topic filter: optional, using Research Topics / Tags
+- Modes: `mock` for local workflow testing, `openai` for real answer synthesis
+
+This is not embedding RAG and does not use a vector database. It only searches
+existing parsed chunks in the database.
+
+Mock mode:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/ask/library" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"question\":\"What are the main bottlenecks in LLM inference systems?\",\"mode\":\"mock\",\"top_k\":10,\"topic\":\"AI Systems / Inference Systems\"}"
+```
+
+OpenAI mode:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/ask/library" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"question\":\"What are the main bottlenecks in LLM inference systems?\",\"mode\":\"openai\",\"top_k\":10,\"topic\":\"AI Systems / Inference Systems\"}"
+```
+
+Omit `topic` or set it to `null` to search all papers:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/ask/library" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"question\":\"What limitations are common across these papers?\",\"mode\":\"mock\",\"top_k\":10,\"topic\":null}"
+```
+
+The Dashboard includes an `Ask Library` panel below search. This is cross-paper
+RAG. The right-side `Ask Paper` panel remains the single-paper RAG interface.
+
 One-click paper processing workflow:
 
 The workflow endpoint can resolve, download, parse, and extract a paper in one
