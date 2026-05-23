@@ -37,6 +37,11 @@ def token_hit_ratio(tokens: list[str], text: str) -> float:
     return hits / len(tokens)
 
 
+def keyword_score(text: str, keywords: list[str], weight: float, max_score: float) -> float:
+    hits = sum(1 for keyword in keywords if keyword in text)
+    return min(hits * weight, max_score)
+
+
 def compute_relevance_score(
     query: str,
     title: str | None,
@@ -88,13 +93,15 @@ def compute_authority_score(
     elif rank_value == "C":
         score += 0.10
     elif rank_value == "Q1":
-        score += 0.25
+        score += 0.30
     elif rank_value == "Q2":
-        score += 0.18
+        score += 0.20
     elif rank_value == "Q3":
         score += 0.10
     elif rank_value == "Q4":
         score += 0.05
+    elif rank_value == "Q-Unknown":
+        score += 0.08
     elif rank_value in {"Unpublished", "Unranked"}:
         score += 0.03
 
@@ -128,6 +135,110 @@ def compute_authority_score(
 
     if has_external_id(external_ids, {"DOI", "ArXiv"}):
         score += 0.05
+
+    return round_score(score)
+
+
+def compute_foundation_score(result: PaperSearchResult) -> float:
+    score = 0.0
+    citations = result.citation_count or 0
+    current_year = datetime.now().year
+    rank_value = result.rank_value
+    title_abstract = normalize_text(f"{result.title or ''} {result.abstract or ''}")
+
+    if citations >= 5000:
+        score += 0.40
+    elif citations >= 1000:
+        score += 0.30
+    elif citations >= 300:
+        score += 0.20
+
+    if rank_value in {"A*", "Q1"}:
+        score += 0.25
+    elif rank_value in {"A", "Q2"}:
+        score += 0.18
+
+    if result.year and result.year <= current_year - 3 and citations >= 500:
+        score += 0.15
+
+    score += keyword_score(
+        title_abstract,
+        [
+            "foundation",
+            "survey",
+            "benchmark",
+            "attention",
+            "transformer",
+            "operator",
+            "world model",
+        ],
+        weight=0.025,
+        max_score=0.10,
+    )
+    return round_score(score)
+
+
+def compute_implementation_score(result: PaperSearchResult) -> float:
+    score = 0.0
+    text = normalize_text(f"{result.title or ''} {result.abstract or ''}")
+    venue = normalize_venue_name(result.venue) or result.venue or ""
+    systems_venues = {
+        "OSDI",
+        "SOSP",
+        "ASPLOS",
+        "MLSys",
+        "EuroSys",
+        "NSDI",
+        "USENIX ATC",
+        "SIGMOD",
+        "VLDB",
+        "ISCA",
+    }
+
+    score += keyword_score(
+        text,
+        [
+            "serving",
+            "inference",
+            "runtime",
+            "kernel",
+            "gpu",
+            "memory",
+            "cache",
+            "batching",
+            "scheduler",
+            "throughput",
+            "latency",
+            "triton",
+            "cuda",
+        ],
+        weight=0.05,
+        max_score=0.35,
+    )
+
+    if venue in systems_venues:
+        score += 0.25
+    if (result.citation_count or 0) >= 100:
+        score += 0.15
+    if result.open_access_pdf_url or result.url:
+        score += 0.10
+
+    return round_score(score)
+
+
+def compute_survey_value_score(result: PaperSearchResult) -> float:
+    score = 0.0
+    title = normalize_text(result.title)
+    abstract = normalize_text(result.abstract)
+
+    if any(keyword in title for keyword in ["survey", "benchmark", "evaluation", "review", "taxonomy"]):
+        score += 0.35
+    if any(keyword in abstract for keyword in ["survey", "benchmark", "evaluation", "leaderboard", "dataset"]):
+        score += 0.25
+    if (result.citation_count or 0) >= 300:
+        score += 0.20
+    if result.rank_value in {"A*", "A", "Q1"}:
+        score += 0.15
 
     return round_score(score)
 
@@ -224,6 +335,9 @@ def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResu
         sources=result.sources,
         external_ids=result.external_ids,
     )
+    result.foundation_score = compute_foundation_score(result)
+    result.implementation_score = compute_implementation_score(result)
+    result.survey_value_score = compute_survey_value_score(result)
     result.frontier_score = compute_frontier_score(
         year=result.year,
         citation_count=result.citation_count,
@@ -238,10 +352,12 @@ def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResu
     )
 
     final_score = (
-        0.40 * result.relevance_score
-        + 0.30 * result.authority_score
-        + 0.20 * result.frontier_score
-        + 0.10 * result.accessibility_score
+        0.30 * result.relevance_score
+        + 0.25 * result.authority_score
+        + 0.15 * result.foundation_score
+        + 0.15 * result.implementation_score
+        + 0.10 * result.frontier_score
+        + 0.05 * result.accessibility_score
     )
     result.final_score = round_score(final_score)
     result.quality_score = result.final_score

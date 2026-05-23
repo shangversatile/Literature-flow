@@ -1,0 +1,12 @@
+journal_title,aliases,rank_source,quartile,year,category,note
+Nature,Nature,JCR/SCImago,Q1,2025,Multidisciplinary Sciences,Seed journal ranking; replace with licensed official data if available
+Science,Science,JCR/SCImago,Q1,2025,Multidisciplinary Sciences,Seed journal ranking; replace with licensed official data if available
+Nature Machine Intelligence,Nature Machine Intelligence,JCR/SCImago,Q1,2025,Artificial Intelligence,Seed journal ranking; replace with licensed official data if available
+Nature Methods,Nature Methods,JCR/SCImago,Q1,2025,Methods,Seed journal ranking; replace with licensed official data if available
+Nature Biotechnology,Nature Biotechnology,JCR/SCImago,Q1,2025,Biotechnology,Seed journal ranking; replace with licensed official data if available
+Journal of Machine Learning Research,JMLR;Journal of Machine Learning Research,JCR/SCImago,Q1,2025,Artificial Intelligence,Seed journal ranking; replace with licensed official data if available
+Transactions on Machine Learning Research,TMLR;Transactions on Machine Learning Research,OpenReview/Journal,Q-Unknown,2025,Machine Learning,Journal venue; import official quartile if available
+Proceedings of the National Academy of Sciences,PNAS;Proceedings of the National Academy of Sciences,JCR/SCImago,Q1,2025,Multidisciplinary Sciences,Seed journal ranking; replace with licensed official data if available
+Cell,Cell,JCR/SCImago,Q1,2025,Life Sciences,Seed journal ranking; replace with licensed official data if available
+Patterns,Patterns,JCR/SCImago,Q1,2025,Data Science,Seed journal ranking; replace with licensed official data if available
+Scientific Reports,Scientific Reports,JCR/SCImago,Q2,2025,Multidisciplinary Sciences,Seed journal ranking; verify before relying on it

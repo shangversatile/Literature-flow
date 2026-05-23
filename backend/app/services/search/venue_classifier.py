@@ -1,7 +1,10 @@
 import re
 import string
 
-from app.services.ranking.ranking_loader import lookup_core_conference_rank
+from app.services.ranking.ranking_loader import (
+    lookup_core_conference_rank,
+    lookup_journal_rank,
+)
 
 
 FALLBACK_NOTE = "Fallback built-in ranking; import CORE CSV for authoritative local mapping."
@@ -10,8 +13,7 @@ FALLBACK_UNRANKED_NOTE = (
     "Import CORE CSV for authoritative local mapping."
 )
 JOURNAL_NOTE = (
-    "Journal quartile requires imported SCImago or JCR data; not available "
-    "in current local mapping."
+    "Journal detected but not found in local journal ranking CSV."
 )
 PREPRINT_NOTE = "Preprint-only record; no peer-reviewed venue detected."
 
@@ -109,6 +111,19 @@ VENUE_ALIASES = {
     "uai": "UAI",
     "eurosys": "EuroSys",
     "arxiv": "arXiv",
+    "nature": "Nature",
+    "science": "Science",
+    "nature machine intelligence": "Nature Machine Intelligence",
+    "nature methods": "Nature Methods",
+    "nature biotechnology": "Nature Biotechnology",
+    "jmlr": "Journal of Machine Learning Research",
+    "journal of machine learning research": "Journal of Machine Learning Research",
+    "tmlr": "Transactions on Machine Learning Research",
+    "transactions on machine learning research": "Transactions on Machine Learning Research",
+    "pnas": "Proceedings of the National Academy of Sciences",
+    "proceedings of the national academy of sciences": "Proceedings of the National Academy of Sciences",
+    "scientific reports": "Scientific Reports",
+    "patterns": "Patterns",
     "focs": "FOCS",
     "stoc": "STOC",
     "eacl": "EACL",
@@ -194,8 +209,11 @@ def _looks_like_journal(venue: str | None) -> bool:
         "nature",
         "science",
         "jmlr",
+        "tmlr",
         "proceedings of the national academy of sciences",
         "pnas",
+        "patterns",
+        "cell",
         "communications of the acm",
     ]
     return any(term in value for term in journal_terms)
@@ -266,6 +284,20 @@ def classify_publication_venue(
             "LitFlow-fallback",
             _conference_rank(venue_normalized),
             FALLBACK_NOTE,
+        )
+
+    journal_rank = lookup_journal_rank(venue) or lookup_journal_rank(venue_normalized)
+    if journal_rank:
+        rank_source = journal_rank["rank_source"]
+        if rank_source:
+            rank_source = f"{rank_source}-local-csv"
+        return _classification(
+            journal_rank["journal_title"] or venue_normalized,
+            "journal",
+            "published",
+            rank_source or "Journal-local-csv",
+            journal_rank["quartile"] or "Unknown",
+            journal_rank["note"],
         )
 
     if _looks_like_journal(venue_normalized):

@@ -106,10 +106,13 @@ All sources search API:
 curl "http://127.0.0.1:8000/search/all?query=flashattention&limit=10"
 ```
 
-Unified search results include scoring v2 fields:
+Unified search results include Scoring Engine v3 fields:
 
 - `relevance_score`
 - `authority_score`
+- `foundation_score`
+- `implementation_score`
+- `survey_value_score`
 - `frontier_score`
 - `accessibility_score`
 - `final_score`
@@ -125,11 +128,21 @@ Unified search results include scoring v2 fields:
 `final_score` is computed as:
 
 ```text
-0.40 * relevance_score
-+ 0.30 * authority_score
-+ 0.20 * frontier_score
-+ 0.10 * accessibility_score
+0.30 * relevance_score
++ 0.25 * authority_score
++ 0.15 * foundation_score
++ 0.15 * implementation_score
++ 0.10 * frontier_score
++ 0.05 * accessibility_score
 ```
+
+`foundation_score` highlights highly cited, older, rank-strong, or
+core-method papers. `implementation_score` highlights systems and engineering
+papers with implementation keywords, systems venues, citations, and accessible
+PDFs. `survey_value_score` highlights surveys, benchmarks, evaluations,
+reviews, taxonomies, and dataset-style papers. The `frontier_score` weight is
+lower in v3 so low-citation new preprints do not dominate the ranking solely
+because they are recent.
 
 `quality_score` is still returned for compatibility and is set to `final_score`.
 `venue_rank` is also kept for compatibility and is set to `rank_value`.
@@ -150,10 +163,31 @@ acronym,name,rank,source,year,note
 The checked-in file is a small development seed, not a complete official list.
 You can replace it with a complete CSV prepared from the CORE / ICORE portal.
 When a venue is not found in the CSV, LitFlow falls back to its small built-in
-mapping with `rank_source = LitFlow-fallback`. Journal quartile support is
-SCImago/JCR-ready, but requires imported data, so journals are currently marked
-`Unknown` unless local quartile data is added later. Preprint-only papers are
-marked `Unpublished`. The system no longer uses `S` or `Journal` as rank values.
+mapping with `rank_source = LitFlow-fallback`.
+
+Journal rank uses local quartile data from:
+
+```text
+storage/rankings/journal_rankings.csv
+```
+
+The journal CSV columns are:
+
+```text
+journal_title,aliases,rank_source,quartile,year,category,note
+```
+
+This checked-in journal file is a small seed, not a complete official
+SCImago/JCR database. You can replace it with licensed SCImago or JCR export
+data using the same columns. The seed maps venues such as Nature, Science,
+Nature Machine Intelligence, Journal of Machine Learning Research / JMLR, PNAS,
+Cell, Patterns, and Scientific Reports to local journal quartiles such as `Q1`
+or `Q2`. When a journal-like venue is not found in the local journal CSV,
+LitFlow marks it `Unknown` with `rank_source = SCImago/JCR-ready`.
+
+Preprint-only papers are marked `Unpublished`. The system no longer uses `S` or
+`Journal` as rank values; conferences use CORE-style ranks and journals use
+`Q1`, `Q2`, `Q3`, `Q4`, or `Q-Unknown`.
 
 Search all sources and save results:
 
@@ -162,6 +196,35 @@ curl -X POST "http://127.0.0.1:8000/search/all/save" ^
   -H "Content-Type: application/json" ^
   -d "{\"query\":\"flashattention\",\"limit\":10}"
 ```
+
+Search Campaign / curated query expansion:
+
+Search Campaign runs a predefined set of high-signal seed queries for a research
+direction, merges duplicate results, and sorts candidates by LitFlow scoring. It
+does not replace normal single-query search. It is not full fuzzy search or an
+embedding retriever, but it is better suited for building a research library
+from curated seed papers and related query variants.
+
+Available endpoints:
+
+```bash
+curl "http://127.0.0.1:8000/search/campaigns"
+curl -X POST "http://127.0.0.1:8000/search/campaigns/run" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"campaign_name\":\"AI Systems / Inference Systems\",\"limit_per_query\":8,\"save\":false}"
+```
+
+Built-in campaigns:
+
+- AI Systems / Inference Systems
+- Trustworthy AI Systems
+- Mechanistic Interpretability
+- Scientific ML / AI for Science
+- Embodied AI / World Models
+
+Campaign runs return candidates only by default. The Dashboard Search Campaign
+panel lets you review results and use `Save Selected`; it does not automatically
+save all results.
 
 Legal open-access PDF resolver and downloader:
 
@@ -193,7 +256,8 @@ curl "http://127.0.0.1:8000/papers/enriched"
 curl "http://127.0.0.1:8000/papers/1/enriched"
 ```
 
-The enriched responses include `final_score`, `venue_normalized`, `venue_type`,
+The enriched responses include `final_score`, `foundation_score`,
+`implementation_score`, `survey_value_score`, `venue_normalized`, `venue_type`,
 `publication_type`, `publication_status`, `rank_source`, `rank_value`,
 `rank_note`, and compatibility fields such as `venue_rank`. These fields are
 computed at read time for Dashboard display.
