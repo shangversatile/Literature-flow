@@ -15,6 +15,7 @@ import {
   refreshPaperEnrichment,
   resolvePdf,
   saveWorkspace,
+  updatePaper,
 } from '../api/papers'
 import { updatePaperTopics } from '../api/topics'
 import type {
@@ -56,6 +57,7 @@ const markdownPreviewLoaded = ref(false)
 const extractionMode = ref<'mock' | 'openai'>('openai')
 const topicInput = ref('')
 const deleteLocalFiles = ref(false)
+const manualPdfUrl = ref('')
 
 const extractionData = computed<Record<string, unknown> | null>(() => {
   if (!latestExtraction.value) return null
@@ -116,6 +118,7 @@ watch(
     markdownPreviewLoaded.value = false
     topicInput.value = props.paper?.topics?.join(', ') || ''
     deleteLocalFiles.value = false
+    manualPdfUrl.value = props.paper?.pdf_url || ''
   },
   { immediate: true },
 )
@@ -179,6 +182,34 @@ async function deleteSelectedPaper() {
     emit('deleted', successMessage.value)
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Failed to delete paper'
+  } finally {
+    loadingAction.value = null
+  }
+}
+
+async function saveManualPdfUrl() {
+  const id = props.paper?.id
+  if (!id) return
+
+  const pdfUrl = manualPdfUrl.value.trim()
+  if (!pdfUrl) {
+    const confirmed = window.confirm('Clear the current PDF URL for this paper?')
+    if (!confirmed) return
+  } else if (!/^https?:\/\//i.test(pdfUrl)) {
+    errorMessage.value = 'PDF URL must start with http:// or https://'
+    successMessage.value = ''
+    return
+  }
+
+  loadingAction.value = 'manual-pdf-url'
+  errorMessage.value = ''
+  successMessage.value = ''
+  try {
+    await updatePaper(id, { pdf_url: pdfUrl || null })
+    successMessage.value = pdfUrl ? 'PDF URL saved.' : 'PDF URL cleared.'
+    emit('refresh')
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to save PDF URL'
   } finally {
     loadingAction.value = null
   }
@@ -637,6 +668,32 @@ function formatSummaryValue(value: unknown) {
             <pre>{{ formatSummaryValue(summaryValue(item.key)) }}</pre>
           </div>
         </div>
+      </section>
+
+      <section class="panel-card">
+        <h3 class="section-title">Manual PDF URL</h3>
+        <dl class="detail-grid mb-3">
+          <dt>Current PDF URL</dt>
+          <dd class="break-all">
+            <span v-if="!paper.pdf_url">-</span>
+            <a v-else class="text-link" :href="paper.pdf_url" target="_blank" rel="noreferrer">{{ paper.pdf_url }}</a>
+          </dd>
+        </dl>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-500">PDF URL</span>
+          <input
+            v-model="manualPdfUrl"
+            class="input"
+            type="url"
+            placeholder="https://arxiv.org/pdf/..."
+          />
+        </label>
+        <p class="mt-2 text-xs leading-5 text-gray-500">
+          Use only legal open-access PDF URLs, e.g. arXiv, OpenReview, official proceedings, author homepage, or institutional repository.
+        </p>
+        <button class="button-secondary mt-3" type="button" :disabled="!!loadingAction" @click="saveManualPdfUrl">
+          {{ loadingAction === 'manual-pdf-url' ? 'Saving...' : 'Save PDF URL' }}
+        </button>
       </section>
 
       <section class="panel-card">
