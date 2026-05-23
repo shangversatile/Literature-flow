@@ -457,6 +457,32 @@ Open API docs:
 
 - `http://127.0.0.1:8000/docs`
 
+## Maintenance
+
+Reset local test library data:
+
+Use this only when you want to clear development or test papers before starting
+a fresh literature collection. The script deletes LitFlow runtime library data
+from the SQLite database and clears generated local files under `storage/pdfs/`,
+`storage/assets/`, and `storage/library/`.
+
+It does not delete source code, `.env`, README files, or `storage/rankings/` CSV
+files. Research topics are preserved by default; paper-topic links are cleared.
+
+Preview what would be removed:
+
+```bash
+python scripts/reset_litflow_library.py --dry-run
+```
+
+Run the reset:
+
+```bash
+python scripts/reset_litflow_library.py
+```
+
+The script requires typing `RESET` before it deletes anything.
+
 ## Start Frontend
 
 ```bash
