@@ -17,6 +17,122 @@ PROMPT_VERSION = "litflow_extraction_v1"
 load_dotenv(PROJECT_ROOT / ".env")
 load_dotenv(BACKEND_ROOT / ".env")
 
+EMPTY_MARKERS = {
+    "",
+    "n/a",
+    "none",
+    "not specified",
+    "not specified in the provided text",
+    "unknown",
+}
+
+LIST_STRING_FIELDS = {
+    "authors",
+    "main_contributions",
+    "limitations",
+    "keywords",
+    "possible_followup_questions",
+}
+
+LIST_INT_FIELDS = {"evidence_chunk_indices"}
+
+STRING_FIELDS = {
+    "research_background",
+    "research_problem",
+    "methodology",
+    "experiments_or_evaluation",
+    "main_conclusions",
+    "relevance_to_user_topic",
+}
+
+
+def is_empty_marker(value: str) -> bool:
+    return value.strip().lower() in EMPTY_MARKERS
+
+
+def normalize_string_list(value: object) -> list[str]:
+    if isinstance(value, list):
+        normalized = []
+        for item in value:
+            if item is None:
+                continue
+            if isinstance(item, str):
+                if not is_empty_marker(item):
+                    normalized.append(item.strip())
+                continue
+            if isinstance(item, dict):
+                normalized.append(json.dumps(item, ensure_ascii=False))
+                continue
+            normalized.append(str(item))
+        return normalized
+
+    if value is None:
+        return []
+    if isinstance(value, str):
+        stripped = value.strip()
+        return [] if is_empty_marker(stripped) else [stripped]
+    if isinstance(value, dict):
+        return [json.dumps(value, ensure_ascii=False)]
+    return []
+
+
+def normalize_int_list(value: object) -> list[int]:
+    if not isinstance(value, list):
+        return []
+
+    normalized = []
+    for item in value:
+        if isinstance(item, bool):
+            continue
+        if isinstance(item, int):
+            normalized.append(item)
+            continue
+        if isinstance(item, str):
+            try:
+                normalized.append(int(item))
+            except ValueError:
+                continue
+    return normalized
+
+
+def normalize_string(value: object) -> str:
+    if value is None:
+        return ""
+    if isinstance(value, str):
+        return "" if is_empty_marker(value) else value
+    if isinstance(value, list):
+        parts = []
+        for item in value:
+            if item is None:
+                continue
+            if isinstance(item, str):
+                if not is_empty_marker(item):
+                    parts.append(item.strip())
+                continue
+            if isinstance(item, dict):
+                parts.append(json.dumps(item, ensure_ascii=False))
+                continue
+            parts.append(str(item))
+        return "\n".join(parts)
+    if isinstance(value, dict):
+        return json.dumps(value, ensure_ascii=False)
+    return str(value)
+
+
+def normalize_extraction_payload(payload: dict) -> dict:
+    normalized = dict(payload)
+
+    for field in LIST_STRING_FIELDS:
+        normalized[field] = normalize_string_list(normalized.get(field))
+
+    for field in LIST_INT_FIELDS:
+        normalized[field] = normalize_int_list(normalized.get(field))
+
+    for field in STRING_FIELDS:
+        normalized[field] = normalize_string(normalized.get(field))
+
+    return normalized
+
 
 def build_extraction_prompt(
     paper: Paper,
@@ -31,7 +147,11 @@ def build_extraction_prompt(
     return f"""
 You are extracting structured information from an academic paper.
 Return only valid JSON. Do not wrap the JSON in markdown.
-Do not invent information. If the provided text does not contain an answer, write "Not specified in the provided text".
+Do not invent information. If the provided text does not contain a string answer, write "Not specified in the provided text".
+For list fields, return a JSON array of strings. If a list field is not specified, use [].
+All list fields must be JSON arrays, not strings.
+limitations must be an array of strings, not a string. If limitations are not specified, use [].
+keywords, authors, main_contributions, limitations, and possible_followup_questions must be JSON arrays.
 The evidence_chunk_indices field must only contain chunk_index values shown below.
 
 Paper metadata:
@@ -83,11 +203,25 @@ def parse_extraction_json(raw_text: str) -> LiteratureExtraction:
         data = json.loads(cleaned)
     except json.JSONDecodeError as exc:
         raise ValueError(f"LLM output is not valid JSON: {exc}") from exc
+    if not isinstance(data, dict):
+        raise ValueError("LLM output JSON must be an object")
+
+    normalized_data = normalize_extraction_payload(data)
 
     try:
-        return LiteratureExtraction.model_validate(data)
+        return LiteratureExtraction.model_validate(normalized_data)
     except ValidationError as exc:
-        raise ValueError(f"LLM JSON does not match LiteratureExtraction schema: {exc}") from exc
+        fields = sorted(
+            {
+                ".".join(str(part) for part in error.get("loc", ()))
+                for error in exc.errors()
+            }
+        )
+        raw_preview = json.dumps(data, ensure_ascii=False)[:1000]
+        raise ValueError(
+            "LLM JSON does not match LiteratureExtraction schema. "
+            f"fields={fields}; raw_json_preview={raw_preview}; validation_error={exc}"
+        ) from exc
 
 
 def mock_extract(
