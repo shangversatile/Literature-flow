@@ -453,6 +453,29 @@ curl -X POST "http://127.0.0.1:8000/papers/1/process" ^
 If you want to use OpenAI extraction, set `extract_mode` to `openai`. If OpenAI
 quota or API access is unavailable, keep `extract_mode` as `mock`.
 
+Batch processing selected papers:
+
+The Dashboard paper table supports selecting multiple saved papers with the row
+checkboxes. Use the header checkbox to select all currently visible rows. The
+Batch Process panel above the table shows the selected count and runs the same
+workflow for the selected papers.
+
+Endpoint:
+
+- `POST /papers/process-batch`
+
+```bash
+curl -X POST "http://127.0.0.1:8000/papers/process-batch" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"paper_ids\":[1,2],\"resolve_pdf\":true,\"download_pdf\":true,\"parse_pdf\":true,\"extract\":true,\"extract_assets\":false,\"save_workspace\":false,\"extract_mode\":\"mock\",\"max_chunks\":8}"
+```
+
+By default, batch processing resolves PDFs, downloads PDFs, parses PDFs, and
+runs extraction. It does not extract assets or save local workspaces unless you
+enable those options. `openai` mode may consume API quota. A single batch is
+limited to 20 papers to avoid accidental large runs. Each response includes a
+per-paper list of workflow steps and their success, skipped, or failed status.
+
 Open API docs:
 
 - `http://127.0.0.1:8000/docs`

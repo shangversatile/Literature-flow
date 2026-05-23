@@ -6,6 +6,8 @@ class ProcessPaperRequest(BaseModel):
     download_pdf: bool = True
     parse_pdf: bool = True
     extract: bool = True
+    extract_assets: bool = False
+    save_workspace: bool = False
     extract_mode: str = "mock"
     user_topic: str | None = None
     max_chunks: int = 8
