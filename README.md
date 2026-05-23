@@ -2,6 +2,10 @@
 
 LitFlow is a minimal project skeleton for automated literature extraction and knowledge management.
 
+中文使用与维护入口文档见：
+
+- `docs/LITFLOW_MANUAL.md`
+
 ## Project Structure
 
 ```text
