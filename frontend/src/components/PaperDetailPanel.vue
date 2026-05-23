@@ -406,6 +406,12 @@ function formatSummaryValue(value: unknown) {
             <dd>{{ displayValue(paper.relevance_score) }}</dd>
             <dt>Authority</dt>
             <dd>{{ displayValue(paper.authority_score) }}</dd>
+            <dt>Foundation</dt>
+            <dd>{{ displayValue(paper.foundation_score) }}</dd>
+            <dt>Implementation</dt>
+            <dd>{{ displayValue(paper.implementation_score) }}</dd>
+            <dt>Survey Value</dt>
+            <dd>{{ displayValue(paper.survey_value_score) }}</dd>
             <dt>Frontier</dt>
             <dd>{{ displayValue(paper.frontier_score) }}</dd>
             <dt>Accessibility</dt>

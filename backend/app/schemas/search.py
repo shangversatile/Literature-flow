@@ -27,6 +27,9 @@ class PaperSearchResult(SQLModel):
     venue_rank_note: str | None = None
     relevance_score: float | None = None
     authority_score: float | None = None
+    foundation_score: float | None = None
+    implementation_score: float | None = None
+    survey_value_score: float | None = None
     frontier_score: float | None = None
     accessibility_score: float | None = None
     final_score: float | None = None

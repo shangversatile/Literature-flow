@@ -15,6 +15,9 @@ export interface Paper {
   updated_at: string
   relevance_score?: number | null
   authority_score?: number | null
+  foundation_score?: number | null
+  implementation_score?: number | null
+  survey_value_score?: number | null
   frontier_score?: number | null
   accessibility_score?: number | null
   final_score?: number | null
@@ -239,6 +242,26 @@ export interface SearchSaveResponse {
   papers: Paper[]
 }
 
+export interface SearchCampaign {
+  name: string
+  description: string
+  queries: string[]
+  default_limit_per_query: number
+}
+
+export interface RunCampaignRequest {
+  campaign_name: string
+  limit_per_query: number
+  save: boolean
+}
+
+export interface RunCampaignResponse {
+  campaign_name: string
+  total_raw_results: number
+  total_unique_results: number
+  results: PaperSearchResult[]
+}
+
 export interface PaperSearchResult {
   title: string
   abstract: string | null
@@ -254,6 +277,9 @@ export interface PaperSearchResult {
   sources: string[]
   relevance_score: number | null
   authority_score: number | null
+  foundation_score: number | null
+  implementation_score: number | null
+  survey_value_score: number | null
   frontier_score: number | null
   accessibility_score: number | null
   final_score: number | null
