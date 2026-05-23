@@ -6,6 +6,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.papers import router as papers_router
 from app.api.search import router as search_router
+from app.api.topics import router as topics_router
 from app.db.session import init_db
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -38,6 +39,7 @@ def on_startup() -> None:
 
 app.include_router(papers_router)
 app.include_router(search_router)
+app.include_router(topics_router)
 app.mount("/static/pdfs", StaticFiles(directory=PDF_STORAGE_DIR), name="pdfs")
 app.mount("/static/assets", StaticFiles(directory=ASSET_STORAGE_DIR), name="assets")
 app.mount("/static/library", StaticFiles(directory=LIBRARY_STORAGE_DIR), name="library")

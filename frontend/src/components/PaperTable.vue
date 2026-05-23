@@ -107,6 +107,11 @@ function displayAuthors(paper: Paper) {
           <td class="title-cell px-3 py-2 align-top">
             <div class="line-clamp-2 font-semibold leading-5 text-gray-950" :title="paper.title">{{ paper.title }}</div>
             <div v-if="paper.doi" class="truncate text-xs text-gray-400">{{ paper.doi }}</div>
+            <div v-if="paper.topics?.length" class="mt-1 flex flex-wrap gap-1">
+              <span v-for="topic in paper.topics.slice(0, 2)" :key="topic" class="badge badge-status">
+                {{ topic }}
+              </span>
+            </div>
           </td>
           <td class="authors-cell truncate px-3 py-2 align-top text-xs text-gray-500">{{ displayAuthors(paper) }}</td>
           <td class="px-3 py-2 align-top text-gray-600">{{ paper.year || '-' }}</td>

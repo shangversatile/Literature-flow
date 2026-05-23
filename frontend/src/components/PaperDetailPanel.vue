@@ -14,12 +14,14 @@ import {
   resolvePdf,
   saveWorkspace,
 } from '../api/papers'
+import { updatePaperTopics } from '../api/topics'
 import type {
   ExtractAssetsResponse,
   Extraction,
   Paper,
   PaperAsset,
   ProcessPaperResponse,
+  ResearchTopic,
   WorkspaceResponse,
 } from '../types'
 import { computeReadingPriority, getPriorityMeaning, priorityBadgeClass } from '../utils/paperQuality'
@@ -28,6 +30,7 @@ const API_BASE = 'http://127.0.0.1:8000'
 
 const props = defineProps<{
   paper: Paper | null
+  topics: ResearchTopic[]
 }>()
 
 const emit = defineEmits<{
@@ -45,6 +48,7 @@ const showPdfPreview = ref(false)
 const markdownPreview = ref('')
 const markdownPreviewLoaded = ref(false)
 const extractionMode = ref<'mock' | 'openai'>('openai')
+const topicInput = ref('')
 
 const extractionData = computed<Record<string, unknown> | null>(() => {
   if (!latestExtraction.value) return null
@@ -101,7 +105,9 @@ watch(
     showPdfPreview.value = false
     markdownPreview.value = ''
     markdownPreviewLoaded.value = false
+    topicInput.value = props.paper?.topics?.join(', ') || ''
   },
+  { immediate: true },
 )
 
 async function runAction(label: string, action: () => Promise<unknown>, shouldRefresh = true) {
@@ -264,6 +270,16 @@ function saveSelectedWorkspace() {
   void runAction('save-workspace', () => saveWorkspace(id), false)
 }
 
+function saveSelectedTopics() {
+  const id = props.paper?.id
+  if (!id) return
+  const topicNames = topicInput.value
+    .split(',')
+    .map((topic) => topic.trim())
+    .filter(Boolean)
+  void runAction('topics', () => updatePaperTopics(id, topicNames))
+}
+
 function assetImageSrc(asset: PaperAsset) {
   if (!asset.local_path) return ''
   const normalized = asset.local_path.replace(/\\/g, '/')
@@ -397,6 +413,34 @@ function formatSummaryValue(value: unknown) {
           </dl>
           <p class="mt-2 leading-5">{{ displayValue(paper.rank_note || paper.venue_rank_note) }}</p>
         </details>
+      </section>
+
+      <section class="panel-card">
+        <h3 class="section-title">Topics</h3>
+        <div class="mb-3 flex flex-wrap gap-2">
+          <span v-if="!paper.topics?.length" class="text-sm text-slate-500">No topics assigned.</span>
+          <template v-else>
+            <span v-for="topic in paper.topics" :key="topic" class="badge badge-status">
+              {{ topic }}
+            </span>
+          </template>
+        </div>
+        <label class="block">
+          <span class="mb-1 block text-xs font-medium text-slate-500">Comma-separated topics</span>
+          <input
+            v-model="topicInput"
+            class="input"
+            type="text"
+            list="topic-options"
+            placeholder="AI Systems / Inference Systems, Systems Optimization"
+          />
+        </label>
+        <datalist id="topic-options">
+          <option v-for="topic in topics" :key="topic.id" :value="topic.name" />
+        </datalist>
+        <button class="button-primary mt-3" type="button" :disabled="!!loadingAction" @click="saveSelectedTopics">
+          {{ loadingAction === 'topics' ? 'Saving...' : 'Save Topics' }}
+        </button>
       </section>
 
       <section class="panel-card">

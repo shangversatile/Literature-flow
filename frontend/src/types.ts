@@ -30,6 +30,20 @@ export interface Paper {
   venue_rank?: string | null
   venue_rank_source?: string | null
   venue_rank_note?: string | null
+  topics?: string[]
+}
+
+export interface ResearchTopic {
+  id: number
+  name: string
+  normalized_name: string
+  description: string | null
+  created_at: string
+}
+
+export interface PaperTopicsResponse {
+  paper_id: number
+  topics: ResearchTopic[]
 }
 
 export interface ReadingPriority {

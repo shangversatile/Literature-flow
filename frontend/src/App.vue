@@ -1,20 +1,23 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { fetchPapers } from './api/papers'
+import { fetchTopics, seedDefaultTopics } from './api/topics'
 import FilterSidebar from './components/FilterSidebar.vue'
 import PaperDetailPanel from './components/PaperDetailPanel.vue'
 import PaperTable from './components/PaperTable.vue'
 import RagAskBox from './components/RagAskBox.vue'
 import SearchPanel from './components/SearchPanel.vue'
-import type { Paper } from './types'
+import type { Paper, ResearchTopic } from './types'
 import { computeReadingPriority } from './utils/paperQuality'
 
 const papers = ref<Paper[]>([])
+const topics = ref<ResearchTopic[]>([])
 const selectedPaperId = ref<number | null>(null)
 const stageFilter = ref('ALL')
 const capabilityFilter = ref('ALL')
 const priorityFilter = ref('ALL')
 const yearFilter = ref('')
+const topicFilter = ref('ALL')
 const loading = ref(false)
 const errorMessage = ref('')
 
@@ -31,7 +34,8 @@ const filteredPapers = computed(() => {
     const priorityMatches =
       priorityFilter.value === 'ALL' || computeReadingPriority(paper).label === priorityFilter.value
     const yearMatches = !year || String(paper.year ?? '').includes(year)
-    return stageMatches && capabilityMatches && priorityMatches && yearMatches
+    const topicMatches = topicFilter.value === 'ALL' || (paper.topics || []).includes(topicFilter.value)
+    return stageMatches && capabilityMatches && priorityMatches && yearMatches && topicMatches
   })
 })
 
@@ -73,6 +77,26 @@ async function loadPapers() {
   }
 }
 
+async function loadTopics() {
+  try {
+    topics.value = await fetchTopics()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to load topics'
+  }
+}
+
+async function handleSeedDefaultTopics() {
+  loading.value = true
+  errorMessage.value = ''
+  try {
+    topics.value = await seedDefaultTopics()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to seed default topics'
+  } finally {
+    loading.value = false
+  }
+}
+
 function paperMatchesCapability(paper: Paper, capability: string) {
   if (capability === 'HAS_PDF') {
     return (
@@ -89,18 +113,23 @@ function paperMatchesCapability(paper: Paper, capability: string) {
   return true
 }
 
-function handleFilterChange(filters: { stage: string; capability: string; priority: string; year: string }) {
+function handleFilterChange(filters: { stage: string; capability: string; priority: string; year: string; topic: string }) {
   stageFilter.value = filters.stage
   capabilityFilter.value = filters.capability
   priorityFilter.value = filters.priority
   yearFilter.value = filters.year
+  topicFilter.value = filters.topic
 }
 
 function selectPaper(paper: Paper) {
   selectedPaperId.value = paper.id
 }
 
-onMounted(loadPapers)
+async function refreshLibrary() {
+  await Promise.all([loadPapers(), loadTopics()])
+}
+
+onMounted(refreshLibrary)
 </script>
 
 <template>
@@ -135,8 +164,10 @@ onMounted(loadPapers)
         :must-read-count="mustReadCount"
         :high-priority-count="highPriorityCount"
         :frontier-watch-count="frontierWatchCount"
+        :topics="topics"
         @filter-change="handleFilterChange"
-        @refresh="loadPapers"
+        @refresh="refreshLibrary"
+        @seed-default-topics="handleSeedDefaultTopics"
       />
 
       <section class="workspace-card flex min-w-0 flex-col overflow-hidden">
@@ -154,7 +185,7 @@ onMounted(loadPapers)
       </section>
 
       <aside class="flex min-w-0 flex-col gap-4 overflow-auto">
-        <PaperDetailPanel :paper="selectedPaper" @refresh="loadPapers" />
+        <PaperDetailPanel :paper="selectedPaper" :topics="topics" @refresh="refreshLibrary" />
         <RagAskBox :paper-id="selectedPaperId" />
       </aside>
     </div>

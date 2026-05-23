@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { reactive, watch } from 'vue'
+import type { ResearchTopic } from '../types'
 import { getPriorityMeaning } from '../utils/paperQuality'
 
 const stages = [
@@ -36,8 +37,9 @@ const priorityGuide = [
 ]
 
 const emit = defineEmits<{
-  'filter-change': [filters: { stage: string; capability: string; priority: string; year: string }]
+  'filter-change': [filters: { stage: string; capability: string; priority: string; year: string; topic: string }]
   refresh: []
+  'seed-default-topics': []
 }>()
 
 defineProps<{
@@ -47,12 +49,14 @@ defineProps<{
   mustReadCount: number
   highPriorityCount: number
   frontierWatchCount: number
+  topics: ResearchTopic[]
 }>()
 
 const filters = reactive({
   stage: 'ALL',
   capability: 'ALL',
   priority: 'ALL',
+  topic: 'ALL',
   year: '',
 })
 
@@ -63,6 +67,7 @@ watch(
       stage: filters.stage,
       capability: filters.capability,
       priority: filters.priority,
+      topic: filters.topic,
       year: filters.year,
     }),
   { deep: true },
@@ -129,6 +134,40 @@ watch(
           @click="filters.capability = capability.value"
         >
           {{ capability.label }}
+        </button>
+      </div>
+    </section>
+
+    <section class="mb-5">
+      <div class="mb-2 flex items-center justify-between gap-2">
+        <h2 class="text-xs font-medium uppercase tracking-normal text-gray-500">Topic</h2>
+        <button
+          v-if="!topics.length"
+          class="button-secondary"
+          type="button"
+          @click="emit('seed-default-topics')"
+        >
+          Seed Default Topics
+        </button>
+      </div>
+      <div class="space-y-1">
+        <button
+          type="button"
+          class="w-full rounded-lg px-2.5 py-1.5 text-left text-xs text-gray-600 hover:bg-gray-50"
+          :class="{ 'bg-gray-950 font-semibold text-white hover:bg-gray-950': filters.topic === 'ALL' }"
+          @click="filters.topic = 'ALL'"
+        >
+          All
+        </button>
+        <button
+          v-for="topic in topics"
+          :key="topic.id"
+          type="button"
+          class="w-full rounded-lg px-2.5 py-1.5 text-left text-xs text-gray-600 hover:bg-gray-50"
+          :class="{ 'bg-gray-950 font-semibold text-white hover:bg-gray-950': filters.topic === topic.name }"
+          @click="filters.topic = topic.name"
+        >
+          {{ topic.name }}
         </button>
       </div>
     </section>

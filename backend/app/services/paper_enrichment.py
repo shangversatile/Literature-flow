@@ -45,6 +45,7 @@ def enrich_paper_for_display(
     paper: Paper,
     query: str | None = None,
     authors: list[str] | None = None,
+    topics: list[str] | None = None,
 ) -> PaperEnrichedRead:
     sources = infer_sources(paper)
     search_result = PaperSearchResult(
@@ -83,6 +84,7 @@ def enrich_paper_for_display(
             "quality_score": search_result.quality_score,
             "sources": search_result.sources,
             "authors": authors or [],
+            "topics": topics or [],
         }
     )
     return PaperEnrichedRead.model_validate(data)

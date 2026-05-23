@@ -223,6 +223,49 @@ shows the Markdown text inside the page without downloading a file. `Export
 Markdown` downloads the `.md` file and uses the filename from the backend
 `Content-Disposition` header.
 
+Research Topics / Tags:
+
+LitFlow supports lightweight research topics for organizing papers by research
+direction. A paper can belong to multiple topics. Topics are manual labels only;
+LitFlow does not run automatic classification, embeddings, or a knowledge graph
+for this feature.
+
+Default topics can be created with:
+
+```bash
+curl -X POST "http://127.0.0.1:8000/topics/seed-defaults"
+```
+
+The default set is:
+
+- Trustworthy AI Systems
+- AI Systems / Inference Systems
+- Scientific ML / AI for Science
+- Embodied AI / World Models
+- Mechanistic Interpretability
+- General Foundation
+- Survey / Benchmark
+- Systems Optimization
+- Evaluation / Red Teaming
+- Interpretability / Circuits
+
+List topics and assign topics to a paper:
+
+```bash
+curl "http://127.0.0.1:8000/topics"
+curl -X PUT "http://127.0.0.1:8000/papers/1/topics" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"topic_names\":[\"AI Systems / Inference Systems\",\"Systems Optimization\"]}"
+curl "http://127.0.0.1:8000/papers/1/topics"
+```
+
+The Dashboard loads topics at startup. Use the sidebar Topic filter to show
+papers assigned to a selected topic. Use the paper detail panel Topics section
+to edit a paper's comma-separated topic list and save it.
+
+Markdown export includes topics in YAML frontmatter and in the Metadata section.
+This keeps saved notes ready for future cross-paper RAG filtering by topic.
+
 There are two export modes:
 
 - `Export Markdown` / `Export BibTeX`: downloads files through the browser to

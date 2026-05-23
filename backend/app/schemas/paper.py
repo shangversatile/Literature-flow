@@ -45,6 +45,7 @@ class PaperEnrichedRead(PaperRead):
     final_score: float | None = None
     quality_score: float | None = None
     sources: list[str] = Field(default_factory=list)
+    topics: list[str] = Field(default_factory=list)
 
 
 class PaperUpdate(SQLModel):

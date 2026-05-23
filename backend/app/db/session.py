@@ -9,6 +9,7 @@ from app.models.paper import Paper
 from app.models.paper_asset import PaperAsset
 from app.models.paper_chunk import PaperChunk
 from app.models.paper_text import PaperText
+from app.models.topic import PaperTopic, ResearchTopic
 
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
