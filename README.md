@@ -237,6 +237,32 @@ curl -X POST "http://127.0.0.1:8000/papers/1/resolve-pdf"
 curl -X POST "http://127.0.0.1:8000/papers/1/download-pdf"
 ```
 
+Manual PDF URL:
+
+If automatic PDF resolution fails but you know a legal open-access PDF URL, set
+the paper metadata `pdf_url` and then run `download-pdf`, `parse-pdf`, or
+`process` as usual. Use only legal open-access sources such as arXiv,
+OpenReview, official proceedings, an author homepage, or an institutional
+repository. LitFlow does not bypass paywalls, logins, or CAPTCHA.
+
+The Dashboard paper detail panel includes a `Manual PDF URL` section near PDF
+Preview. The same metadata update is available through the existing
+`PATCH /papers/{paper_id}` endpoint:
+
+```bash
+curl -X PATCH "http://127.0.0.1:8000/papers/1" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"pdf_url\":\"https://arxiv.org/pdf/1706.03762\"}"
+```
+
+To clear a saved PDF URL:
+
+```bash
+curl -X PATCH "http://127.0.0.1:8000/papers/1" ^
+  -H "Content-Type: application/json" ^
+  -d "{\"pdf_url\":null}"
+```
+
 Downloaded PDFs are saved with readable filenames when enough metadata is
 available:
 
