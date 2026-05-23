@@ -201,6 +201,13 @@ def _conference_rank(venue_normalized: str) -> str:
     return "Unranked"
 
 
+def _normalize_conference_acronym(value: str | None) -> str | None:
+    normalized = normalize_venue_name(value)
+    if normalized == "NeurIPS":
+        return "NeurIPS"
+    return normalized or value
+
+
 def _looks_like_journal(venue: str | None) -> bool:
     value = _normalize_lookup_text(venue)
     journal_terms = [
@@ -267,13 +274,23 @@ def classify_publication_venue(
         rank_source = csv_rank["source"]
         if rank_source:
             rank_source = f"{rank_source}-local-csv"
+        normalized_acronym = _normalize_conference_acronym(
+            csv_rank["acronym"] or venue_normalized
+        )
+        rank_note = csv_rank["note"]
+        if normalized_acronym == "NeurIPS" and _normalize_lookup_text(venue) in {
+            "nips",
+            "neural information processing systems",
+            "advances in neural information processing systems",
+        }:
+            rank_note = f"{rank_note} Alias matched NeurIPS/NIPS.".strip()
         return _classification(
-            csv_rank["acronym"] or venue_normalized,
+            normalized_acronym or venue_normalized,
             "conference",
             "published",
             rank_source or "CORE-local-csv",
             csv_rank["rank"] or "Unknown",
-            csv_rank["note"],
+            rank_note,
         )
 
     if venue_normalized in CONFERENCE_VENUES:
