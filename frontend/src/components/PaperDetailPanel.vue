@@ -11,6 +11,7 @@ import {
   parsePdf,
   previewMarkdown,
   processPaper,
+  refreshPaperEnrichment,
   resolvePdf,
   saveWorkspace,
 } from '../api/papers'
@@ -21,6 +22,7 @@ import type {
   Paper,
   PaperAsset,
   ProcessPaperResponse,
+  RefreshEnrichmentResponse,
   ResearchTopic,
   WorkspaceResponse,
 } from '../types'
@@ -41,6 +43,7 @@ const loadingAction = ref<string | null>(null)
 const errorMessage = ref('')
 const latestExtraction = ref<Extraction | null>(null)
 const processResult = ref<ProcessPaperResponse | null>(null)
+const refreshResult = ref<RefreshEnrichmentResponse | null>(null)
 const assetResult = ref<ExtractAssetsResponse | null>(null)
 const workspaceResult = ref<WorkspaceResponse | null>(null)
 const assets = ref<PaperAsset[]>([])
@@ -98,6 +101,7 @@ watch(
     errorMessage.value = ''
     latestExtraction.value = null
     processResult.value = null
+    refreshResult.value = null
     assetResult.value = null
     workspaceResult.value = null
     assets.value = []
@@ -122,6 +126,9 @@ async function runAction(label: string, action: () => Promise<unknown>, shouldRe
     }
     if (label === 'process') {
       processResult.value = result as ProcessPaperResponse
+    }
+    if (label === 'refresh-enrichment') {
+      refreshResult.value = result as RefreshEnrichmentResponse
     }
     if (label === 'assets') {
       assets.value = result as PaperAsset[]
@@ -211,6 +218,12 @@ function processSelectedPaper() {
       max_chunks: 8,
     }),
   )
+}
+
+function refreshSelectedEnrichment() {
+  const id = props.paper?.id
+  if (!id) return
+  void runAction('refresh-enrichment', () => refreshPaperEnrichment(id))
 }
 
 function loadLatestExtraction() {
@@ -476,7 +489,10 @@ function formatSummaryValue(value: unknown) {
 
           <div class="action-group">
             <h4>Reading Actions</h4>
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-2 gap-2">
+              <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="refreshSelectedEnrichment">
+                {{ loadingAction === 'refresh-enrichment' ? 'Refreshing...' : 'Refresh Rank & Score' }}
+              </button>
               <button class="button-secondary" type="button" :disabled="!!loadingAction" @click="loadLatestExtraction">
                 {{ loadingAction === 'latest' ? 'Loading...' : 'Load Summary' }}
               </button>
@@ -530,6 +546,9 @@ function formatSummaryValue(value: unknown) {
 
         <p v-if="errorMessage" class="mt-3 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
           {{ errorMessage }}
+        </p>
+        <p v-if="refreshResult" class="mt-3 rounded-md border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-700">
+          {{ refreshResult.message }} Rank {{ refreshResult.rank_value || '-' }}, score {{ displayValue(refreshResult.final_score) }}.
         </p>
       </section>
 

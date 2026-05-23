@@ -235,6 +235,24 @@ export interface BatchProcessResponse {
   results: BatchPaperResult[]
 }
 
+export interface RefreshEnrichmentResponse {
+  paper_id: number
+  title: string
+  old_venue: string | null
+  venue_normalized: string | null
+  rank_value: string | null
+  rank_source: string | null
+  final_score: number | null
+  message: string
+}
+
+export interface RefreshEnrichmentBatchResponse {
+  total: number
+  succeeded: number
+  failed: number
+  results: RefreshEnrichmentResponse[]
+}
+
 export interface SearchSaveResponse {
   query: string
   inserted_count: number

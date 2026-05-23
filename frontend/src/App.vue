@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
-import { fetchPapers } from './api/papers'
+import { fetchPapers, refreshEnrichmentBatch } from './api/papers'
 import { fetchTopics, seedDefaultTopics } from './api/topics'
 import BatchProcessPanel from './components/BatchProcessPanel.vue'
 import FilterSidebar from './components/FilterSidebar.vue'
@@ -26,7 +26,9 @@ const priorityFilter = ref('ALL')
 const yearFilter = ref('')
 const topicFilter = ref('ALL')
 const loading = ref(false)
+const refreshingRankings = ref(false)
 const errorMessage = ref('')
+const maintenanceMessage = ref('')
 
 const selectedPaper = computed(() => {
   return papers.value.find((paper) => paper.id === selectedPaperId.value) ?? null
@@ -155,6 +157,21 @@ async function refreshLibrary() {
   await Promise.all([loadPapers(), loadTopics()])
 }
 
+async function refreshAllRankings() {
+  refreshingRankings.value = true
+  maintenanceMessage.value = ''
+  errorMessage.value = ''
+  try {
+    const result = await refreshEnrichmentBatch()
+    maintenanceMessage.value = `Refreshed rankings: ${result.succeeded}/${result.total} succeeded.`
+    await loadPapers()
+  } catch (error) {
+    errorMessage.value = error instanceof Error ? error.message : 'Failed to refresh rankings'
+  } finally {
+    refreshingRankings.value = false
+  }
+}
+
 onMounted(refreshLibrary)
 </script>
 
@@ -166,10 +183,10 @@ onMounted(refreshLibrary)
           <h1 class="text-lg font-semibold tracking-tight text-gray-950">LitFlow</h1>
           <p class="text-xs text-gray-500">Automated Literature Intelligence Workspace</p>
         </div>
-        <div class="text-right text-xs leading-5 text-gray-500">
-          <div>Backend: 127.0.0.1:8000</div>
-          <div>Frontend: localhost:5173</div>
-          <div>
+        <div class="app-status text-right text-xs leading-5 text-gray-500">
+          <div class="app-status-pill">Backend: 127.0.0.1:8000</div>
+          <div class="app-status-pill">Frontend: localhost:5173</div>
+          <div class="app-status-line">
             <span v-if="loading">Refreshing library...</span>
             <span v-else-if="errorMessage" class="text-red-600">{{ errorMessage }}</span>
             <span v-else>{{ filteredPapers.length }} visible / {{ papers.length }} total</span>
@@ -204,10 +221,14 @@ onMounted(refreshLibrary)
         >
           Ask Library
         </button>
+        <button class="button-ghost" type="button" :disabled="refreshingRankings" @click="refreshAllRankings">
+          {{ refreshingRankings ? 'Refreshing...' : 'Refresh All Rankings' }}
+        </button>
         <button class="button-ghost ml-auto" type="button" @click="toolsCollapsed = !toolsCollapsed">
           {{ toolsCollapsed ? 'Expand Tools' : 'Collapse Tools' }}
         </button>
       </div>
+      <p v-if="maintenanceMessage" class="mt-1 text-xs text-green-700">{{ maintenanceMessage }}</p>
 
       <div v-if="!toolsCollapsed" class="tool-panel">
         <SearchPanel v-if="activeTool === 'search'" @refresh="loadPapers" />

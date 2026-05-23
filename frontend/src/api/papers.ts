@@ -11,6 +11,8 @@ import type {
   PaperUpdatePayload,
   ProcessPaperRequest,
   ProcessPaperResponse,
+  RefreshEnrichmentBatchResponse,
+  RefreshEnrichmentResponse,
   WorkspaceResponse,
 } from '../types'
 
@@ -146,6 +148,17 @@ export function processBatch(payload: BatchProcessRequest): Promise<BatchProcess
   return request<BatchProcessResponse>('/papers/process-batch', {
     method: 'POST',
     body: JSON.stringify(payload),
+  })
+}
+
+export function refreshPaperEnrichment(id: number): Promise<RefreshEnrichmentResponse> {
+  return request<RefreshEnrichmentResponse>(`/papers/${id}/refresh-enrichment`, { method: 'POST' })
+}
+
+export function refreshEnrichmentBatch(paperIds?: number[]): Promise<RefreshEnrichmentBatchResponse> {
+  return request<RefreshEnrichmentBatchResponse>('/papers/refresh-enrichment-batch', {
+    method: 'POST',
+    body: JSON.stringify({ paper_ids: paperIds ?? null }),
   })
 }
 

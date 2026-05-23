@@ -555,3 +555,452 @@ button:disabled {
 .text-link:hover {
   text-decoration: underline;
 }
+
+/* Final visual polish: restrained research-workbench system */
+:root {
+  --lf-bg: #f6f7f9;
+  --lf-surface: #ffffff;
+  --lf-surface-soft: #fbfbfc;
+  --lf-hover: #f3f4f6;
+  --lf-border: #e5e7eb;
+  --lf-border-strong: #d1d5db;
+  --lf-text: #111827;
+  --lf-muted: #6b7280;
+  --lf-faint: #9ca3af;
+  --lf-blue: #2563eb;
+  --lf-success: #16a34a;
+  --lf-warning: #d97706;
+  --lf-danger: #dc2626;
+  --lf-radius-sm: 8px;
+  --lf-radius-md: 10px;
+  --lf-radius-lg: 12px;
+  --lf-shadow: 0 1px 2px rgb(17 24 39 / 4%);
+}
+
+body {
+  background: var(--lf-bg);
+  color: var(--lf-text);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  transition:
+    background 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+button:disabled {
+  opacity: 0.5;
+}
+
+.app-shell {
+  background: var(--lf-bg);
+}
+
+.app-header {
+  min-height: 64px;
+  background: rgb(255 255 255 / 94%);
+  backdrop-filter: blur(10px);
+}
+
+.app-header h1 {
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.app-header p {
+  color: var(--lf-faint);
+}
+
+.app-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.375rem;
+  max-width: 540px;
+}
+
+.app-status-pill,
+.app-status-line {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.5rem;
+  border: 1px solid var(--lf-border);
+  border-radius: 999px;
+  background: var(--lf-surface-soft);
+  color: var(--lf-muted);
+  padding: 0.125rem 0.625rem;
+  line-height: 1;
+}
+
+.workspace-card,
+.card,
+.panel-card {
+  border: 1px solid var(--lf-border);
+  border-radius: var(--lf-radius-lg);
+  background: var(--lf-surface);
+  box-shadow: var(--lf-shadow);
+}
+
+.panel-card {
+  padding: 1rem;
+}
+
+.tool-dock {
+  border-bottom: 1px solid var(--lf-border);
+  background: rgb(255 255 255 / 96%);
+  padding: 0.5rem 1rem 0.625rem;
+}
+
+.tool-tabs {
+  gap: 0.5rem;
+}
+
+.tool-tab {
+  border-radius: var(--lf-radius-sm);
+  color: var(--lf-muted);
+  padding: 0.45rem 0.75rem;
+}
+
+.tool-tab:hover {
+  border-color: var(--lf-border);
+  background: var(--lf-hover);
+  color: var(--lf-text);
+}
+
+.tool-tab-active {
+  border-color: #c7d2fe;
+  background: #eef2ff;
+  color: #1d4ed8;
+  box-shadow: inset 0 0 0 1px rgb(37 99 235 / 8%);
+}
+
+.tool-tab-active:hover {
+  background: #e0e7ff;
+  color: #1d4ed8;
+}
+
+.tool-panel {
+  margin-top: 0.5rem;
+  max-height: 260px;
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.tool-panel > .workspace-card {
+  border-radius: var(--lf-radius-lg);
+  box-shadow: none;
+}
+
+.main-workspace {
+  background: var(--lf-bg);
+}
+
+.button-primary,
+.button-secondary,
+.button-success,
+.button-ghost,
+.button-danger {
+  min-height: 2.25rem;
+  border-radius: var(--lf-radius-md);
+}
+
+.button-primary {
+  border-color: #111827;
+  background: #111827;
+  padding: 0.5rem 0.85rem;
+  font-weight: 650;
+}
+
+.button-primary:hover:not(:disabled) {
+  background: #1f2937;
+  border-color: #1f2937;
+  box-shadow: 0 1px 2px rgb(17 24 39 / 10%);
+}
+
+.button-secondary {
+  border-color: var(--lf-border);
+  background: var(--lf-surface);
+  color: #374151;
+  padding: 0.48rem 0.75rem;
+}
+
+.button-secondary:hover:not(:disabled) {
+  border-color: var(--lf-border-strong);
+  background: var(--lf-hover);
+}
+
+.button-success {
+  border-color: #15803d;
+  background: var(--lf-success);
+  padding: 0.48rem 0.75rem;
+}
+
+.button-success:hover:not(:disabled) {
+  background: #15803d;
+}
+
+.button-ghost {
+  color: var(--lf-muted);
+  padding: 0.48rem 0.75rem;
+}
+
+.button-ghost:hover:not(:disabled) {
+  background: var(--lf-hover);
+  color: var(--lf-text);
+}
+
+.button-danger {
+  border: 1px solid #fecaca;
+  background: #fef2f2;
+  color: var(--lf-danger);
+  padding: 0.48rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 650;
+}
+
+.button-danger:hover:not(:disabled) {
+  border-color: #fca5a5;
+  background: #fee2e2;
+}
+
+.input,
+.mode-select {
+  border-color: var(--lf-border);
+  border-radius: var(--lf-radius-md);
+  background: var(--lf-surface);
+  color: var(--lf-text);
+  transition:
+    border-color 140ms ease,
+    box-shadow 140ms ease,
+    background 140ms ease;
+}
+
+.input::placeholder {
+  color: var(--lf-faint);
+}
+
+.input:focus,
+.mode-select:focus {
+  border-color: var(--lf-blue);
+  box-shadow: 0 0 0 3px rgb(37 99 235 / 12%);
+}
+
+.section-title {
+  color: var(--lf-muted);
+  letter-spacing: 0.01em;
+}
+
+.detail-grid dt {
+  color: var(--lf-muted);
+}
+
+.detail-grid dd {
+  color: var(--lf-text);
+}
+
+.metric-tile,
+.summary-block,
+.action-group {
+  border-color: var(--lf-border);
+  border-radius: var(--lf-radius-lg);
+  background: var(--lf-surface-soft);
+}
+
+.summary-block pre,
+.summary-block p {
+  color: #374151;
+  line-height: 1.5rem;
+}
+
+.action-group h4,
+.summary-block h4 {
+  color: #374151;
+}
+
+.badge {
+  border-color: var(--lf-border);
+  background: var(--lf-surface-soft);
+  color: #374151;
+  padding: 3px 9px;
+  font-size: 11.5px;
+  line-height: 1.25;
+}
+
+.badge-rank {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.badge-status,
+.badge-muted {
+  border-color: var(--lf-border);
+  background: var(--lf-hover);
+  color: #4b5563;
+}
+
+.badge-score {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+  color: #15803d;
+}
+
+.badge-warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.badge-danger {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.badge-priority-must-read {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.badge-priority-high {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.badge-priority-frontier {
+  border-color: #ddd6fe;
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.badge-priority-skim {
+  border-color: var(--lf-border);
+  background: var(--lf-hover);
+  color: #4b5563;
+}
+
+.badge-priority-archive {
+  border-color: var(--lf-border);
+  background: #fafafa;
+  color: var(--lf-muted);
+}
+
+.compact-table thead {
+  background: #fafafa;
+  color: var(--lf-muted);
+  box-shadow: inset 0 -1px 0 var(--lf-border);
+}
+
+.compact-table th,
+.compact-table td {
+  padding: 0.62rem 0.75rem;
+}
+
+.compact-table tbody tr:hover {
+  background: #fafafa;
+}
+
+.compact-table tbody tr.bg-blue-50,
+.compact-table tbody tr.bg-blue-50:hover {
+  background: #eff6ff;
+}
+
+.compact-table tbody tr.bg-slate-50 {
+  background: #f8fafc;
+}
+
+.compact-table .title-cell .font-semibold {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.compact-table .authors-cell,
+.compact-table td.text-gray-600 {
+  color: var(--lf-muted);
+}
+
+.paper-table-wrapper,
+.tool-panel,
+.detail-sidebar,
+.workspace-card,
+.panel-card {
+  scrollbar-color: #cbd5e1 transparent;
+}
+
+.paper-table-wrapper::-webkit-scrollbar,
+.tool-panel::-webkit-scrollbar,
+.detail-sidebar::-webkit-scrollbar,
+.workspace-card::-webkit-scrollbar,
+.panel-card::-webkit-scrollbar {
+  width: 12px;
+  height: 12px;
+}
+
+.paper-table-wrapper::-webkit-scrollbar-thumb,
+.tool-panel::-webkit-scrollbar-thumb,
+.detail-sidebar::-webkit-scrollbar-thumb,
+.workspace-card::-webkit-scrollbar-thumb,
+.panel-card::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border: 3px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.priority-guide {
+  border-color: var(--lf-border);
+  border-radius: var(--lf-radius-lg);
+  background: var(--lf-surface-soft);
+}
+
+.priority-guide summary {
+  color: #374151;
+}
+
+.workspace-card button.bg-gray-950,
+.workspace-card button.bg-gray-950:hover {
+  background: #eef2ff !important;
+  color: #1d4ed8 !important;
+  box-shadow: inset 0 0 0 1px #bfdbfe;
+}
+
+.workspace-card button.hover\:bg-gray-50:hover {
+  background: var(--lf-hover);
+}
+
+.text-link {
+  color: var(--lf-blue);
+}
+
+.batch-toolbar,
+.batch-panel {
+  border-color: var(--lf-border);
+}
+
+.batch-panel {
+  background: var(--lf-surface-soft);
+}
+
+.batch-result-panel {
+  border-color: var(--lf-border);
+  border-radius: var(--lf-radius-md);
+  background: var(--lf-surface);
+}
+
+article.rounded-lg,
+article.rounded-xl,
+article.rounded-md {
+  border-color: var(--lf-border);
+}
