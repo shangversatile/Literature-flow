@@ -74,7 +74,7 @@ button:disabled {
 
 .tool-panel {
   margin-top: 0.5rem;
-  max-height: 260px;
+  max-height: min(72vh, 760px);
   overflow-y: auto;
   padding-right: 0.25rem;
 }
@@ -692,13 +692,29 @@ button:disabled {
 
 .tool-panel {
   margin-top: 0.5rem;
-  max-height: 260px;
+  max-height: min(72vh, 760px);
   scrollbar-color: #cbd5e1 transparent;
 }
 
 .tool-panel > .workspace-card {
   border-radius: var(--lf-radius-lg);
   box-shadow: none;
+}
+
+.search-results-panel,
+.campaign-results-panel {
+  overflow-y: auto;
+  transition: max-height 0.15s ease;
+}
+
+.search-results-panel.compact,
+.campaign-results-panel.compact {
+  max-height: 260px;
+}
+
+.search-results-panel.expanded,
+.campaign-results-panel.expanded {
+  max-height: min(60vh, 640px);
 }
 
 .main-workspace {

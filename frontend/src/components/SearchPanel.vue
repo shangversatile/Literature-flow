@@ -14,6 +14,7 @@ const errorMessage = ref('')
 const searchResults = ref<PaperSearchResult[]>([])
 const selectedKeys = ref<Set<string>>(new Set())
 const saveResult = ref<SearchSaveResponse | null>(null)
+const resultsExpanded = ref(false)
 
 const selectedCount = computed(() => selectedKeys.value.size)
 const hasResults = computed(() => searchResults.value.length > 0)
@@ -55,6 +56,7 @@ function clearSelection() {
 
 function closeResults(clearMessage = true) {
   searchResults.value = []
+  resultsExpanded.value = false
   clearSelection()
   if (clearMessage) {
     saveResult.value = null
@@ -89,6 +91,7 @@ async function runSearch() {
 
   try {
     searchResults.value = await searchAll(trimmedQuery, safeLimit)
+    resultsExpanded.value = false
     clearSelection()
     saveResult.value = null
   } catch (error) {
@@ -176,11 +179,18 @@ async function saveAllResults() {
       </p>
     </div>
 
-    <div v-if="hasResults" class="mt-3 max-h-80 overflow-auto rounded-xl border border-gray-200">
+    <div
+      v-if="hasResults"
+      class="search-results-panel mt-3 rounded-xl border border-gray-200"
+      :class="resultsExpanded ? 'expanded' : 'compact'"
+    >
       <div class="sticky top-0 z-20 flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
         <span class="mr-2 text-xs font-semibold text-gray-700">Candidate Results</span>
         <button class="button-secondary" type="button" :disabled="!!loading" @click="selectAll">Select All</button>
         <button class="button-secondary" type="button" :disabled="!!loading" @click="clearSelection">Clear Selection</button>
+        <button class="button-ghost" type="button" @click="resultsExpanded = !resultsExpanded">
+          {{ resultsExpanded ? 'Compact Results' : 'Expand Results' }}
+        </button>
         <button class="button-ghost" type="button" :disabled="!!loading" @click="closeResults()">Close</button>
         <button class="button-success ml-auto" type="button" :disabled="!!loading" @click="saveSelected">
           {{ loading === 'save-selected' ? 'Saving...' : 'Save Selected' }}

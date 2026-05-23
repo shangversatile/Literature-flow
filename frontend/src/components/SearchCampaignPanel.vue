@@ -15,6 +15,7 @@ const errorMessage = ref('')
 const response = ref<RunCampaignResponse | null>(null)
 const selectedKeys = ref<Set<string>>(new Set())
 const saveResult = ref<SearchSaveResponse | null>(null)
+const resultsExpanded = ref(false)
 
 const selectedCampaign = computed(() => {
   return campaigns.value.find((campaign) => campaign.name === selectedCampaignName.value) ?? null
@@ -99,6 +100,7 @@ async function runCampaign() {
       limit_per_query: limitPerQuery.value,
       save: false,
     })
+    resultsExpanded.value = false
     clearSelection()
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : 'Campaign search failed'
@@ -166,11 +168,18 @@ onMounted(loadCampaigns)
           Raw {{ response.total_raw_results }} / unique {{ response.total_unique_results }}. {{ selectedCount }} selected.
         </p>
 
-        <div v-if="results.length" class="max-h-80 overflow-auto rounded-xl border border-gray-200">
+        <div
+          v-if="results.length"
+          class="campaign-results-panel rounded-xl border border-gray-200"
+          :class="resultsExpanded ? 'expanded' : 'compact'"
+        >
           <div class="sticky top-0 z-20 flex items-center gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
             <span class="mr-2 text-xs font-semibold text-gray-700">Campaign Results</span>
             <button class="button-secondary" type="button" :disabled="!!loading" @click="selectAll">Select All</button>
             <button class="button-secondary" type="button" :disabled="!!loading" @click="clearSelection">Clear Selection</button>
+            <button class="button-ghost" type="button" @click="resultsExpanded = !resultsExpanded">
+              {{ resultsExpanded ? 'Compact Results' : 'Expand Results' }}
+            </button>
             <button class="button-success ml-auto" type="button" :disabled="!!loading" @click="saveSelected">
               {{ loading === 'save-selected' ? 'Saving...' : 'Save Selected' }}
             </button>
