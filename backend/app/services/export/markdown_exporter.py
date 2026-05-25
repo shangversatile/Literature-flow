@@ -47,15 +47,26 @@ def yaml_list(field_name: str, values: list[str]) -> list[str]:
     return lines
 
 
-def markdown_asset_path(asset: PaperAsset) -> str:
+def markdown_asset_path(
+    asset: PaperAsset,
+    asset_base_path: str | None = None,
+) -> str:
     path = asset.local_path or ""
     normalized = path.replace("\\", "/")
+    if asset_base_path is not None:
+        filename = normalized.rstrip("/").split("/")[-1]
+        if not filename:
+            return ""
+        return f"{asset_base_path.strip('/')}/{filename}"
     if normalized.startswith("storage/assets/"):
         return "../assets/" + normalized.removeprefix("storage/assets/")
     return normalized
 
 
-def figures_and_tables_section(assets: list[PaperAsset]) -> list[str]:
+def figures_and_tables_section(
+    assets: list[PaperAsset],
+    asset_base_path: str | None = None,
+) -> list[str]:
     page_images = [asset for asset in assets if asset.asset_type == "page_image"]
     figure_captions = [
         asset for asset in assets if asset.asset_type == "figure_caption"
@@ -73,7 +84,9 @@ def figures_and_tables_section(assets: list[PaperAsset]) -> list[str]:
     if page_images:
         for asset in page_images:
             page_label = asset.page_number or asset.asset_index
-            lines.append(f"![Page {page_label}]({markdown_asset_path(asset)})")
+            lines.append(
+                f"![Page {page_label}]({markdown_asset_path(asset, asset_base_path)})"
+            )
             lines.append("")
     else:
         lines.extend(["No page images extracted yet.", ""])
@@ -118,6 +131,7 @@ def export_paper_to_markdown(
     enriched: PaperEnrichedRead | None = None,
     assets: list[PaperAsset] | None = None,
     authors: list[str] | None = None,
+    asset_base_path: str | None = None,
 ) -> str:
     data = extraction_data(latest_extraction)
     title = paper.title
@@ -249,6 +263,6 @@ def export_paper_to_markdown(
         ]
     )
 
-    lines.extend(figures_and_tables_section(assets or []))
+    lines.extend(figures_and_tables_section(assets or [], asset_base_path))
 
     return "\n".join(lines)

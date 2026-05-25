@@ -417,6 +417,15 @@ storage/library/{paper_id}-{year}-{short-title}/
 └── assets/
 ```
 
+`storage/assets/{paper_id}/` is LitFlow's intermediate asset directory for
+extracted page images, captions, and tables. `Save to Library` keeps that
+directory intact and copies its contents into the literature package at
+`storage/library/{paper_id}-{year}-{short-title}/assets/`.
+
+The generated `note.md` uses package-internal relative image paths such as
+`assets/page-001.png`, so the whole literature package can be moved together
+without breaking embedded images.
+
 Workspace files are generated artifacts and are ignored by git.
 
 Workspace API:
