@@ -228,6 +228,7 @@ def save_paper_to_workspace(
         enriched,
         assets_for_paper(paper_id, session),
         authors,
+        asset_base_path="assets",
     )
     bibtex_text = export_paper_to_bibtex(paper, authors)
     return WorkspaceSaveResponse.model_validate(

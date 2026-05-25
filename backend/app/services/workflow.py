@@ -154,6 +154,7 @@ def save_workspace_for_paper(
             .order_by(PaperAsset.asset_type, PaperAsset.page_number, PaperAsset.asset_index)
         ).all(),
         authors,
+        asset_base_path="assets",
     )
     bibtex_text = export_paper_to_bibtex(paper, authors)
     workspace = save_paper_workspace(paper, markdown_text, bibtex_text, enriched)
