@@ -4,6 +4,7 @@ import string
 from app.services.ranking.ranking_loader import (
     lookup_core_conference_rank,
     lookup_journal_rank,
+    lookup_manual_paper_override,
 )
 
 
@@ -230,11 +231,13 @@ def _classification(
     rank_source: str | None,
     rank_value: str,
     rank_note: str,
+    publication_type: str | None = None,
+    impact_label: str | None = None,
 ) -> dict:
     return {
         "venue_normalized": venue_normalized,
         "venue_type": venue_type,
-        "publication_type": venue_type,
+        "publication_type": publication_type or venue_type,
         "publication_status": publication_status,
         "rank_source": rank_source,
         "rank_value": rank_value,
@@ -242,6 +245,7 @@ def _classification(
         "venue_rank": rank_value,
         "venue_rank_source": rank_source,
         "venue_rank_note": rank_note,
+        "impact_label": impact_label,
     }
 
 
@@ -295,10 +299,25 @@ def _looks_like_conference(venue: str | None) -> bool:
 
 def classify_publication_venue(
     venue: str | None,
+    title: str | None = None,
+    doi: str | None = None,
     external_ids: dict | None = None,
     sources: list[str] | None = None,
 ) -> dict:
     del external_ids, sources
+
+    manual_override = lookup_manual_paper_override(title, doi)
+    if manual_override:
+        return _classification(
+            manual_override["venue_normalized"] or venue,
+            manual_override["venue_type"] or "unknown",
+            manual_override["publication_status"] or "unknown",
+            manual_override["rank_source"] or "manual-override",
+            manual_override["rank_value"] or "Influential",
+            manual_override["note"],
+            publication_type=manual_override["publication_type"] or None,
+            impact_label=manual_override["impact_label"] or None,
+        )
 
     venue_normalized = normalize_venue_name(venue)
     if not venue_normalized:

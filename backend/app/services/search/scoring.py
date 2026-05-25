@@ -120,6 +120,7 @@ def is_open_access_like(
 def compute_authority_score(
     venue: str | None,
     rank_value: str | None,
+    rank_source: str | None,
     citation_count: int | None,
     year: int | None,
     sources: list[str],
@@ -148,6 +149,9 @@ def compute_authority_score(
         score += 0.08
     elif rank_value in {"Unpublished", "Unranked"}:
         score += 0.03
+
+    if rank_source == "manual-override" or rank_value == "Influential":
+        score += 0.20
 
     if citations >= 3000:
         score += 0.30
@@ -185,7 +189,10 @@ def compute_authority_score(
     return round_score(score)
 
 
-def compute_foundation_score(result: PaperSearchResult) -> float:
+def compute_foundation_score(
+    result: PaperSearchResult,
+    impact_label: str | None = None,
+) -> float:
     score = 0.0
     citations = result.citation_count or 0
     current_year = datetime.now().year
@@ -203,6 +210,10 @@ def compute_foundation_score(result: PaperSearchResult) -> float:
         score += 0.25
     elif rank_value in {"A", "Q2"}:
         score += 0.18
+
+    if result.rank_source == "manual-override" or rank_value == "Influential":
+        if impact_label in {"Foundational", "Foundational MLOps", "Production ML"}:
+            score += 0.20
 
     if result.year and current_year - result.year >= 2 and citations >= 500:
         score += 0.15
@@ -373,6 +384,8 @@ def compute_accessibility_score(
 def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResult:
     classification = classify_publication_venue(
         result.venue,
+        title=result.title,
+        doi=result.doi,
         external_ids=result.external_ids,
         sources=result.sources,
     )
@@ -400,12 +413,16 @@ def score_paper_result(result: PaperSearchResult, query: str) -> PaperSearchResu
     result.authority_score = compute_authority_score(
         venue=result.venue,
         rank_value=result.rank_value,
+        rank_source=result.rank_source,
         citation_count=result.citation_count,
         year=result.year,
         sources=result.sources,
         external_ids=result.external_ids,
     )
-    result.foundation_score = compute_foundation_score(result)
+    result.foundation_score = compute_foundation_score(
+        result,
+        impact_label=classification.get("impact_label"),
+    )
     result.implementation_score = compute_implementation_score(result)
     result.survey_value_score = compute_survey_value_score(result)
     result.frontier_score = compute_frontier_score(

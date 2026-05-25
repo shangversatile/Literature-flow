@@ -199,6 +199,21 @@ Preprint-only papers are marked `Unpublished`. The system no longer uses `S` or
 `Journal` as rank values; conferences use CORE-style ranks and journals use
 `Q1`, `Q2`, `Q3`, `Q4`, or `Q-Unknown`.
 
+Manual paper overrides are stored in:
+
+```text
+storage/rankings/manual_paper_overrides.csv
+```
+
+This CSV is for high-impact papers whose metadata or venue is unstable across
+search sources, or whose influence is not captured by ordinary CORE/JCR rules.
+It is a curated personal-library override, not an official ranking source. Use
+it sparingly and keep notes clear, especially for workshop, technical report, or
+classic production-ML papers. Overrides are matched by normalized title pattern
+before normal venue classification. `rank_value = Influential` is not treated as
+CORE `A*`; it only adds a modest authority/foundation signal while final score
+still depends on relevance and the other scoring components.
+
 Search all sources and save results:
 
 ```bash

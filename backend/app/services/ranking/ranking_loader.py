@@ -8,6 +8,9 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).resolve().parents[4]
 CORE_RANKING_CSV = PROJECT_ROOT / "storage" / "rankings" / "core_conference_rankings.csv"
 JOURNAL_RANKING_CSV = PROJECT_ROOT / "storage" / "rankings" / "journal_rankings.csv"
+MANUAL_PAPER_OVERRIDES_CSV = (
+    PROJECT_ROOT / "storage" / "rankings" / "manual_paper_overrides.csv"
+)
 
 
 def normalize_key(text: str | None) -> str:
@@ -157,5 +160,55 @@ def lookup_journal_rank(venue: str | None) -> dict | None:
     for key, row in rankings.items():
         if key and key in venue_key:
             return row
+
+    return None
+
+
+@lru_cache(maxsize=1)
+def load_manual_paper_overrides() -> list[dict[str, str]]:
+    if not MANUAL_PAPER_OVERRIDES_CSV.exists():
+        return []
+
+    overrides: list[dict[str, str]] = []
+    with MANUAL_PAPER_OVERRIDES_CSV.open("r", encoding="utf-8", newline="") as csv_file:
+        reader = csv.DictReader(csv_file)
+        for row in reader:
+            title_pattern = (row.get("title_pattern") or "").strip()
+            if not title_pattern:
+                continue
+
+            overrides.append(
+                {
+                    "title_pattern": title_pattern,
+                    "canonical_title": (row.get("canonical_title") or "").strip(),
+                    "venue_normalized": (row.get("venue_normalized") or "").strip(),
+                    "venue_type": (row.get("venue_type") or "").strip(),
+                    "publication_type": (row.get("publication_type") or "").strip(),
+                    "publication_status": (row.get("publication_status") or "").strip(),
+                    "rank_value": (row.get("rank_value") or "").strip(),
+                    "rank_source": (row.get("rank_source") or "").strip(),
+                    "impact_label": (row.get("impact_label") or "").strip(),
+                    "topic_hint": (row.get("topic_hint") or "").strip(),
+                    "note": (row.get("note") or "").strip(),
+                }
+            )
+
+    return overrides
+
+
+@lru_cache(maxsize=2048)
+def lookup_manual_paper_override(
+    title: str | None,
+    doi: str | None = None,
+) -> dict | None:
+    del doi
+    title_key = normalize_key(title)
+    if not title_key:
+        return None
+
+    for override in load_manual_paper_overrides():
+        pattern_key = normalize_key(override.get("title_pattern"))
+        if pattern_key and pattern_key in title_key:
+            return override
 
     return None
